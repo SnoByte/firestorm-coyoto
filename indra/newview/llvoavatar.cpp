@@ -891,7 +891,29 @@ void LLVOAvatar::debugAvatarRezTime(std::string notification_name, std::string c
 //------------------------------------------------------------------------
 LLVOAvatar::~LLVOAvatar()
 {
-    sInstances.remove(this);
+    // If there is more then 1 object, then search all the objects for this object
+    if (sInstances.size() > 1)
+    {
+        // Use search to find the Avatar
+        auto found = std::find(sInstances.begin(), sInstances.end(), this);
+        // If it was found on the list
+        if (found != sInstances.end())
+        {
+            // If the found is not the last object
+            if (*found != sInstances[sInstances.size() - 1])
+            {
+                std::swap(*found, sInstances[sInstances.size() - 1]);                
+            }
+
+            sInstances.pop_back();
+        }
+    }
+    else
+    {
+        sInstances.pop_back();
+    }
+    //sInstances.erase(std::remove(sInstances.begin(), sInstances.end(), this), sInstances.end());
+    //sInstances.remove(this);
 
     if (!mFullyLoaded)
     {

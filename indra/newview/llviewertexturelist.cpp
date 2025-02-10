@@ -1167,11 +1167,22 @@ F32 LLViewerTextureList::updateImagesCreateTextures(F32 max_time)
             LLViewerFetchedTexture* image = mDownScaleQueue.front();
             llassert(image->mDownScalePending);
 
-            LLImageGL* img = image->getGLTexture();
-            if (img && img->getHasGLTexture())
-            {
-                img->scaleDown(image->getDesiredDiscardLevel());
+            // <FS:minerjr>
+            //LLImageGL* img = image->getGLTexture();
+            //if (img && img->getHasGLTexture())
+            //{
+            //    img->scaleDown(image->getDesiredDiscardLevel());
+            //}            
+            // Check what the new desired discard level is and if we have it already on the raw image list
+            if (!image->tryToUseRawImagesToScaleDown(image->getDesiredDiscardLevel()))
+            {            
+                LLImageGL* img = image->getGLTexture();
+                if (img && img->getHasGLTexture())
+                {
+                    img->scaleDown(image->getDesiredDiscardLevel());                    
+                }
             }
+            // </FS:minerjr>
 
             image->mDownScalePending = false;
             mDownScaleQueue.pop();
@@ -1236,7 +1247,7 @@ F32 LLViewerTextureList::updateImagesFetchTextures(F32 max_time)
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_TEXTURE;
     // <FS:minerjr>
-    static LLCachedControl<U32> fs_performance_additions(gSavedSettings,"FSPerformanceAdditions", false);
+    static LLCachedControl<U32> fs_performance_additions(gSavedSettings,"FSPerformanceAdditions", 0);
     if (fs_performance_additions >= 3)
     {
         LL_PROFILE_ZONE_SCOPED_CATEGORY_TEXTURE;
@@ -1257,7 +1268,8 @@ F32 LLViewerTextureList::updateImagesFetchTextures(F32 max_time)
         update_count = llmax((U32) MIN_UPDATE_COUNT, (U32) mUUIDMap.size()/20);
         // <FS:minerjr>
         //if (LLViewerTexture::sDesiredDiscardBias > 1.f)
-        if (LLViewerTexture::sDesiredDiscardBias > 1.f)
+        // Only add more if there is a increase in the bias
+        if (LLViewerTexture::sPreviousDesiredDiscardBias < LLViewerTexture::sDesiredDiscardBias)
         {
             // we are over memory target, update more agresively
             update_count = (S32)(update_count * LLViewerTexture::sDesiredDiscardBias);
