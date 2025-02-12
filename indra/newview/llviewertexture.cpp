@@ -2213,7 +2213,7 @@ bool LLViewerFetchedTexture::updateFetch()
         if (mRawImage.notNull()) sRawCount--;
         if (mAuxRawImage.notNull()) sAuxCount--;
         // If the worker was not aborted, then do the normal processing as it should be done.
-        if (mWorkerThreadStateValues.Accessors.mWasAborted == 0)
+        //if (mWorkerThreadStateValues.Accessors.mWasAborted == 0)
         {
             // keep in mind that fetcher still might need raw image, don't modify original
             finished = LLAppViewer::getTextureFetch()->getRequestFinished(getID(), fetch_discard, mFetchState, mRawImage, mAuxRawImage,
@@ -2933,7 +2933,7 @@ bool LLViewerFetchedTexture::doLoadedCallbacks()
         if (mRawImages[foundRawIndex].notNull()) break;
     }
     // If the raw is not valid or is the raw is valid, and is not as good a quality 
-    if ((!mIsRawImageValid || foundRawIndex < mRawDiscardLevel) && foundRawIndex >= 0 && foundRawIndex <= MAX_DISCARD_LEVEL + 1)
+    if ((!mIsRawImageValid || foundRawIndex < mRawDiscardLevel) && foundRawIndex >= 0 && foundRawIndex <= MAX_DISCARD_LEVEL)
     {
         current_raw_discard = foundRawIndex;
         best_raw_discard = llmin(best_raw_discard, foundRawIndex);
@@ -3277,7 +3277,7 @@ bool LLViewerFetchedTexture::tryToClearRawImages()
     if (mLastRawImageAccess != 0.0f && sCurrentTime - mLastRawImageAccess > 30.0f)
     {
         // Loop over all of the images and set them to null.
-        for (S32 index = 0; index <= MAX_DISCARD_LEVEL - 2; index++)
+        for (S32 index = 0; index <= MAX_DISCARD_LEVEL; index++)
         {
             // Could do validation of the number of raw images
             if (mRawImages[index].notNull())
@@ -3304,7 +3304,7 @@ bool LLViewerFetchedTexture::tryToUseRawImagesToScaleDown(S32 desiredDiscardLeve
     // Store the result of the attempt
     bool result = false;
     // If the desired discard level is within the range of the possible values and the raw image at that scale is not null, then
-    if (desiredDiscardLevel >= 0 && desiredDiscardLevel < MAX_DISCARD_LEVEL + 2 && mRawImages[desiredDiscardLevel].notNull())
+    if (desiredDiscardLevel >= 0 && desiredDiscardLevel < MAX_DISCARD_LEVEL && mRawImages[desiredDiscardLevel].notNull())
     {
         // Use the existing RAW texture
         result = mGLTexturep->createGLTexture(desiredDiscardLevel, mRawImages[desiredDiscardLevel], 0, true, mBoostLevel);

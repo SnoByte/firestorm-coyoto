@@ -1193,6 +1193,12 @@ bool LLTextureFetchWorker::doWork(S32 param)
 
     LLMutexLock lock(&mWorkMutex);                                      // +Mw
 
+    if (mDesiredDiscard < 0 || mDesiredDiscard > MAX_DISCARD_LEVEL)
+    {
+        LL_INFOS() << mID << ": Priority: " << llformat("%8.0f",mImagePriority)
+            << " Desired Discard: " << mDesiredDiscard << " Desired Size: " << mDesiredSize << LL_ENDL;
+    }
+
     if ((mFetcher->isQuitting() || getFlags(LLWorkerClass::WCF_DELETE_REQUESTED)))
     {
         if (mState < DECODE_IMAGE)
