@@ -361,6 +361,7 @@ public:
 public:
     // <FS:minerjr>
     LLAtomicU64 mAtomicWorkerThreadState;
+    std::atomic<U64*> mAtomicWorkerThreadStatePtr;
     PackedTextureWorkerData mWorkerThreadStateValues;
     // </FS:minerjr>
     /*virtual*/ S8 getType() const override;

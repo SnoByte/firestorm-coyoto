@@ -3019,7 +3019,7 @@ S32 LLTextureFetch::createRequest(FTType f_type, const std::string& url, const L
         LL_DEBUGS("Avatar") << " requesting " << id << " " << w << "x" << h << " discard " << desired_discard << " type " << f_type << LL_ENDL;
     }
     // <FS:minerjr>
-    /*
+    
     LLTextureFetchWorker* worker = getWorker(id);
     if (worker)
     {
@@ -3032,13 +3032,14 @@ S32 LLTextureFetch::createRequest(FTType f_type, const std::string& url, const L
             return CREATE_REQUEST_ERROR_MHOSTS;
         }
     }
-    */
+    
     // Assign the current texture worker state to the atomic packed texture data (To see into the worker assigned to this texture)
-    mCurrentTextureWorkerState.Data = atomic_packed_texture_data.CurrentValue();
+    //mCurrentTextureWorkerState.Data = atomic_packed_texture_data.CurrentValue();
     // If the value of the atomic packed texture data is not 0, that means there is an worker thread assigned to this UUID already
     // And if the host information does not match the current host data we can remove the request and return ane error.
     // we could get ride of the second check in side but for now, be thread safe.
-    if (mCurrentTextureWorkerState.Data != 0 && mCurrentTextureWorkerState.Accessors.mHostIP != host.getAddress() && mCurrentTextureWorkerState.Accessors.mHostPort != host.getPort() && mCurrentTextureWorkerState.Accessors.mState != (LLTextureFetchWorker::DONE + 1))
+    //if (mCurrentTextureWorkerState.Data != 0 && mCurrentTextureWorkerState.Accessors.mHostIP != host.getAddress() && mCurrentTextureWorkerState.Accessors.mHostPort != host.getPort() && mCurrentTextureWorkerState.Accessors.mState != (LLTextureFetchWorker::DONE + 1))
+    /*
     {
         LLTextureFetchWorker* worker = getWorker(id);
         if (worker)
@@ -3053,6 +3054,7 @@ S32 LLTextureFetch::createRequest(FTType f_type, const std::string& url, const L
             }
         }
     }
+    */
     // </FS:minerjr>
 
     S32 desired_size;
@@ -3099,7 +3101,7 @@ S32 LLTextureFetch::createRequest(FTType f_type, const std::string& url, const L
         desired_discard = MAX_DISCARD_LEVEL;
     }
     // <FS:minerjr>
-    /*
+    
     if (worker)
     {
         if (worker->wasAborted())
@@ -3109,8 +3111,14 @@ S32 LLTextureFetch::createRequest(FTType f_type, const std::string& url, const L
         worker->lockWorkMutex();                                        // +Mw
         if (worker->mState == LLTextureFetchWorker::DONE && worker->mDesiredSize == llmax(desired_size, TEXTURE_CACHE_ENTRY_SIZE) && worker->mDesiredDiscard == desired_discard) {
             worker->unlockWorkMutex();                                  // -Mw
-
-            return CREATE_REQUEST_ERROR_TRANSITION; // similar request has finished, failed or is in a transitional state
+            if (worker->mDesiredDiscard >= 0 && worker->mDesiredDiscard <= MAX_DISCARD_LEVEL)
+            {
+                return CREATE_REQUEST_ERROR_TRANSITION - desired_discard; // similar request has finished, failed or is in a transitional state
+            }
+            else
+            {
+                return CREATE_REQUEST_ERROR_TRANSITION;
+            }
         }
         worker->mActiveCount++;
         worker->mNeedsAux = needs_aux;
@@ -3145,11 +3153,12 @@ S32 LLTextureFetch::createRequest(FTType f_type, const std::string& url, const L
         worker->setCanUseHTTP(can_use_http) ;
         worker->unlockWorkMutex();                                      // -Mw
     }
-    */
+    
     // Get the current worker thread last state
-    mCurrentTextureWorkerState.Data = atomic_packed_texture_data.CurrentValue();
+    //mCurrentTextureWorkerState.Data = atomic_packed_texture_data.CurrentValue();
     // If the current worker thread's mState is no invalid, then do the normal operations
-    if (mCurrentTextureWorkerState.Accessors.mState != LLTextureFetchWorker::DONE + 1)
+    //if (mCurrentTextureWorkerState.Accessors.mState != LLTextureFetchWorker::DONE + 1)
+    /*
     {
         LLTextureFetchWorker* worker = getWorker(id);
         if (worker)
@@ -3163,7 +3172,7 @@ S32 LLTextureFetch::createRequest(FTType f_type, const std::string& url, const L
             {
                 worker->unlockWorkMutex();                                  // -Mw
 
-                return CREATE_REQUEST_ERROR_TRANSITION; // similar request has finished, failed or is in a transitional state
+                return CREATE_REQUEST_ERROR_TRANSITION - desired_discard; // similar request has finished, failed or is in a transitional state
             }
             worker->mActiveCount++;
             worker->mNeedsAux = needs_aux;
@@ -3185,21 +3194,24 @@ S32 LLTextureFetch::createRequest(FTType f_type, const std::string& url, const L
                 worker->unlockWorkMutex();                                  // -Mw
             }
         }
-    }
-    // Else we can save a lock as there is 
-    else
-    {
-        LLTextureFetchWorker* worker = new LLTextureFetchWorker(this, f_type, url, id, host, priority, desired_discard, desired_size, atomic_packed_texture_data);
-        lockQueue();                                                    // +Mfq
-        mRequestMap[id] = worker;
-        unlockQueue();                                                  // -Mfq
+        // Else we can save a lock as there is 
+        else
+        {
+            LLTextureFetchWorker* worker = new LLTextureFetchWorker(this, f_type, url, id, host, priority, desired_discard, desired_size, atomic_packed_texture_data);
+            lockQueue();                                                    // +Mfq
+            mRequestMap[id] = worker;
+            unlockQueue();                                                  // -Mfq
 
-        worker->lockWorkMutex();                                        // +Mw
-        worker->mActiveCount++;
-        worker->mNeedsAux = needs_aux;
-        worker->setCanUseHTTP(can_use_http) ;
-        worker->unlockWorkMutex();                                      // -Mw
+            worker->lockWorkMutex();                                        // +Mw
+            worker->mActiveCount++;
+            worker->mNeedsAux = needs_aux;
+            worker->setCanUseHTTP(can_use_http) ;
+            worker->unlockWorkMutex();                                      // -Mw
+        }
+
+        
     }
+    */
 
     LL_DEBUGS(LOG_TXT) << "REQUESTED: " << id << " f_type " << fttype_to_string(f_type)
                        << " Discard: " << desired_discard << " size " << desired_size << LL_ENDL;

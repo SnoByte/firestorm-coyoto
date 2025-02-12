@@ -1193,6 +1193,7 @@ void LLViewerFetchedTexture::init(bool firstinit)
     mWorkerThreadStateValues.Data = 0;
     mWorkerThreadStateValues.Accessors.mState = 15; // DONE + 1 (invalid value)
     mAtomicWorkerThreadState = mWorkerThreadStateValues.Data;
+    mAtomicWorkerThreadStatePtr = &mWorkerThreadStateValues.Data;
     
 }
 
@@ -2433,6 +2434,7 @@ bool LLViewerFetchedTexture::updateFetch()
                     S32 fetch_state = LLAppViewer::getTextureFetch()->getLastFetchState(mID, desired_discard, decoded_discard, decoded);
                     if (fetch_state > 1 && decoded && decoded_discard >=0 && decoded_discard <= desired_discard)
                     {
+                        LL_INFOS() << "WORKER THREAD: Decode Discard:" << decoded_discard << " Desired Discard: " << desired_discard << LL_ENDL;
                         // worker actually has the image
                         if (mRawImage.notNull()) sRawCount--;
                         if (mAuxRawImage.notNull()) sAuxCount--;                        
@@ -2512,8 +2514,11 @@ bool LLViewerFetchedTexture::updateFetch()
                     
                     if (mRawImage.notNull()) sRawCount--;
                     if (mAuxRawImage.notNull()) sAuxCount--;
-                    mRawImage = mRawImages[decoded_discard];
-                    mAuxRawImage = mAuxRawImages[decoded_discard];
+                    if (decoded_discard >= 0 && decoded_discard <= MAX_DISCARD_LEVEL)
+                    {
+                        mRawImage = mRawImages[decoded_discard];
+                        mAuxRawImage = mAuxRawImages[decoded_discard];
+                    }
                     if (mRawImage.notNull())
                     {
                         sRawCount++;
