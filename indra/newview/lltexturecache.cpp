@@ -2001,7 +2001,10 @@ LLTextureCache::handle_t LLTextureCache::writeToCache(const LLUUID& id,
                                                       LLPointer<LLImageRaw> rawimage, S32 discardlevel,
                                                       WriteResponder* responder)
 {
-    if (mReadOnly)
+    // <FS:minerjr>
+    // Added bounds check for the MAX_DISCARD_LEVEL
+    if (mReadOnly || discardlevel > MAX_DISCARD_LEVEL)
+    // </FS:minerjr>
     {
         delete responder;
         return LLWorkerThread::nullHandle();
@@ -2109,21 +2112,36 @@ bool LLTextureCache::writeToFastCache(LLUUID image_id, S32 id, LLPointer<LLImage
     c = raw->getComponents();
 
     S32 i = 0 ;
+    // <FS:minerjr>
+    // Added a sanity check on the raw texture being passed in
+    // If it is not well formed or is beoyond the range of the MAX_DISCARD_LEVEL or below 0, then 
+    if (w*h*c == 0 || discardlevel > MAX_DISCARD_LEVEL || discardlevel < 0)
+    {
+        // Invalid texture to try to save
+        LL_ERRS() << "Attempted to write Invalid raw image to fastcache" << LL_ENDL;
+        return false;
+    }
+    // </FS:minerjr>
 
     // Search for a discard level that will fit into fast cache
-    while(((w >> i) * (h >> i) * c) > TEXTURE_FAST_CACHE_DATA_SIZE)
+    // <FS:minerjr>
+    //while(((w >> i) * (h >> i) * c) > TEXTURE_FAST_CACHE_DATA_SIZE)
+    while(((w >> i) * (h >> i) * c) > TEXTURE_FAST_CACHE_DATA_SIZE && (i + discardlevel) < MAX_DISCARD_LEVEL)
+    // </FS:minerjr>
     {
         ++i ;
     }
 
     // <FS:minerjr>
-    // Added bounds check for the MAX_DISCARD_LEVEL
-    if (i > MAX_DISCARD_LEVEL)
+    // Added additional bounds check to make sure the fast chache is not written to by a texture
+    // over the MAX_DISCARD_LEVEL
+    if (discardlevel + i > MAX_DISCARD_LEVEL)
     {
-        // Invalid discard level reached
+        // Invalid texture to try to save
+        LL_ERRS() << "Attempted to write Invalid raw image to fastcache" << LL_ENDL;
         return false;
     }
-    // <FS:minerjr>
+    // </FS:minerjr>
     if(i)
     {
         w >>= i;
