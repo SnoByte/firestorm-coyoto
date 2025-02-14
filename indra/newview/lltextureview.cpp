@@ -713,15 +713,16 @@ void LLGLTexMemBar::draw()
     // </FS:Ansariel>
                     gTextureList.getNumImages(),
                     LLAppViewer::getTextureFetch()->getNumRequests(), LLAppViewer::getTextureFetch()->getNumDeletes(),
+                    LLAppViewer::getTextureFetch()->mPacketCount, LLAppViewer::getTextureFetch()->mBadPacketCount,
                     LLAppViewer::getTextureCache()->getNumReads(), LLAppViewer::getTextureCache()->getNumWrites(),
-                    LLLFSThread::sLocal->getPending(),
-                    LLImageRaw::sRawImageCount,
+                    (S32)LLLFSThread::sLocal->getPending(),
+                    (S32)LLImageRaw::sRawImageCount,
                     LLAppViewer::getTextureFetch()->getNumHTTPRequests(),
-                    LLAppViewer::getImageDecodeThread()->getPending(),
+                    (S32)LLAppViewer::getImageDecodeThread()->getPending(),
                     // <FS:Ansariel> Fast cache stats
                     //gTextureList.mCreateTextureList.size());
-                    gTextureList.mCreateTextureList.size(),
-                    gTextureList.mFastCacheList.size());
+                    (S32)gTextureList.mCreateTextureList.size(),
+                    (S32)gTextureList.mFastCacheList.size());
                     // </FS:Ansariel>
 
     x_right = 550.0f;

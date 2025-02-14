@@ -1141,6 +1141,17 @@ bool LLTextureFetchWorker::doWork(S32 param)
 
     LLMutexLock lock(&mWorkMutex);                                      // +Mw
 
+    // <FS:minerjr>
+    //LL_WARNS("Texture") << mID << " state " << e_state_name[mState] << ": Priority: " << llformat("%8.0f",mImagePriority)
+    //    << " Desired Discard: " << mDesiredDiscard << " Desired Size: " << mDesiredSize << " Can Use Http: " << (mCanUseHTTP ? "True" : "False") << " NumFaces: " << LL_ENDL;
+    // Added additional bounds check to exit if reached by a bad fetch request, should not get here anymore, but just in case.
+    if (mDesiredDiscard < 0 || mDesiredDiscard > MAX_DISCARD_LEVEL)
+    {
+        LL_WARNS("Texture") << mID << " state " << e_state_name[mState] << ": Going to return early to prevent processing. Priority: " << llformat("%8.0f",mImagePriority)
+            << " Desired Discard: " << mDesiredDiscard << " Desired Size: " << mDesiredSize << " Can Use Http: " << (mCanUseHTTP ? "True" : "False") << "Type: " << mFTType << LL_ENDL;
+        return true; // abort
+    }
+    // </FS:minerjr>
     if ((mFetcher->isQuitting() || getFlags(LLWorkerClass::WCF_DELETE_REQUESTED)))
     {
         if (mState < DECODE_IMAGE)
@@ -1333,11 +1344,15 @@ bool LLTextureFetchWorker::doWork(S32 param)
             // we have enough data, decode it
             llassert_always(mFormattedImage->getDataSize() > 0);
             mLoadedDiscard = mDesiredDiscard;
-            if (mLoadedDiscard < 0)
+            // <FS:minerjr>
+            //if (mLoadedDiscard < 0)
+            // Added additional bounds check for MAX_DISCARD_LEVEL
+            if (mLoadedDiscard < 0 || mLoadedDiscard > MAX_DISCARD_LEVEL)
             {
                 LL_WARNS(LOG_TXT) << mID << " mLoadedDiscard is " << mLoadedDiscard
-                                  << ", should be >=0" << LL_ENDL;
+                                  << ", should be >=0 && <= MAX_DISCARD_LEVEL" << LL_ENDL; // This should do something else like exit or try to load the URL instead.
             }
+            // </FS:minerjr>
             setState(DECODE_IMAGE);
             mInCache = true;
             mWriteToCacheState = NOT_WRITE ;

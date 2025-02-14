@@ -544,6 +544,10 @@ bool LLTextureCacheRemoteWorker::doWrite()
             || (mDataSize <= 0) // Things will go badly wrong if mDataSize is nul or negative...
             || (mImageSize < mDataSize)
             || (mRawDiscardLevel < 0)
+            // <FS:minerjr>
+            // Added bounds check for the MAX_DISCARD_LEVEL
+            || (mRawDiscardLevel > MAX_DISCARD_LEVEL)
+            // </FS:minerjr>
             || (mRawImage->isBufferInvalid())) // decode failed or malfunctioned, don't write
         {
             LL_WARNS() << "INIT state check failed for image: " << mID << " Size: " << mImageSize << " DataSize: " << mDataSize << " Discard:" << mRawDiscardLevel << LL_ENDL;
@@ -2112,6 +2116,14 @@ bool LLTextureCache::writeToFastCache(LLUUID image_id, S32 id, LLPointer<LLImage
         ++i ;
     }
 
+    // <FS:minerjr>
+    // Added bounds check for the MAX_DISCARD_LEVEL
+    if (i > MAX_DISCARD_LEVEL)
+    {
+        // Invalid discard level reached
+        return false;
+    }
+    // <FS:minerjr>
     if(i)
     {
         w >>= i;

@@ -1247,7 +1247,11 @@ void LLViewerFetchedTexture::loadFromFastCache()
         mFullHeight = mRawImage->getHeight() << mRawDiscardLevel;
         setTexelsPerImage();
 
-        if(mFullWidth > MAX_IMAGE_SIZE || mFullHeight > MAX_IMAGE_SIZE)
+        // <FS:minerjr>
+        //if(mFullWidth > MAX_IMAGE_SIZE || mFullHeight > MAX_IMAGE_SIZE)
+        // Added bounds checking for the MAX_DISCARD_LEVEL
+        if(mFullWidth > MAX_IMAGE_SIZE || mFullHeight > MAX_IMAGE_SIZE || mRawDiscardLevel > MAX_DISCARD_LEVEL)
+        // </FS:minerjr>
         {
             //discard all oversized textures.
             destroyRawImage();
@@ -1375,7 +1379,11 @@ void LLViewerFetchedTexture::addToCreateTexture()
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_TEXTURE;
     bool force_update = false;
-    if (getComponents() != mRawImage->getComponents())
+    // <FS:minerjr>
+    //if (getComponents() != mRawImage->getComponents())
+    // Check to see if the new mRawImage component is valid, if not, skip
+    if (getComponents() != mRawImage->getComponents() && mRawImage->getComponents() > 0)
+    // </FS:minerjr>
     {
         // We've changed the number of components, so we need to move any
         // objects using this pool to a different pool.
@@ -1404,6 +1412,16 @@ void LLViewerFetchedTexture::addToCreateTexture()
         mNeedsCreateTexture = false;
         destroyRawImage();
     }
+    // <FS:minerjr>
+    // Added additional check to make sure the loaded raw is not over the max discard, and it has a component.
+    else if (mRawDiscardLevel > MAX_DISCARD_LEVEL || (mRawImage.notNull() && mRawImage->getComponents() == 0))
+    {
+        // Tried to use a bad texture so removed it
+
+        mNeedsCreateTexture = false;
+        destroyRawImage();
+    }
+    // </FS:minerjr>
     else if(!force_update && getDiscardLevel() > -1 && getDiscardLevel() <= mRawDiscardLevel)
     {
         mNeedsCreateTexture = false;
@@ -1879,6 +1897,11 @@ bool LLViewerFetchedTexture::processFetchResults(S32& desired_discard, S32 curre
         mRawDiscardLevel = fetch_discard;
         if ((mRawImage->getDataSize() > 0 && mRawDiscardLevel >= 0) &&
             (current_discard < 0 || mRawDiscardLevel < current_discard))
+        // <FS:minerjr>
+        // Was looking at limiting the MAX_DISCARD_LEVEL here as well.     
+        /*if ((mRawImage->getDataSize() > 0 && mRawImage->getComponents() != 0 && mRawDiscardLevel >= 0 && mRawDiscardLevel <= MAX_DISCARD_LEVEL) &&
+            (current_discard < 0 || mRawDiscardLevel < current_discard))*/
+        // </FS:minerjr>
         {
             LL_PROFILE_ZONE_NAMED_CATEGORY_TEXTURE("vftuf - data good");
 
@@ -2169,6 +2192,7 @@ bool LLViewerFetchedTexture::updateFetch()
         // bypass texturefetch directly by pulling from LLTextureCache
         S32 fetch_request_response = -1;
         S32 worker_discard = -1;
+        //LL_WARNS() << getID() << " W:" << w << " H:" << h << " C:" << c << " Desired Discard: " << desired_discard << LL_ENDL;
         fetch_request_response = LLAppViewer::getTextureFetch()->createRequest(mFTType, mUrl, getID(), getTargetHost(), decode_priority,
                                                                               w, h, c, desired_discard, needsAux(), mCanUseHTTP);
 
@@ -2195,8 +2219,13 @@ bool LLViewerFetchedTexture::updateFetch()
             S32 decoded_discard;
             bool decoded;
             S32 fetch_state = LLAppViewer::getTextureFetch()->getLastFetchState(mID, desired_discard, decoded_discard, decoded);
-            if (fetch_state > 1 && decoded && decoded_discard >=0 && decoded_discard <= desired_discard)
+            // <FS:minerjr>
+            //if (fetch_state > 1 && decoded && decoded_discard >=0 && decoded_discard <= desired_discard)
+            // Added checks to make sure the rely restored texture is not above the MAX_DISCARD_LEVEL
+            if (fetch_state > 1 && decoded && decoded_discard >=0 && decoded_discard <= desired_discard && decoded_discard <= MAX_DISCARD_LEVEL)
+            // </FS:minerjr>
             {
+                //LL_WARNS("Texture") << "WORKER transition: Decoded Discard: " << decoded_discard << " Desired Discard: " << desired_discard << LL_ENDL;
                 // worker actually has the image
                 if (mRawImage.notNull()) sRawCount--;
                 if (mAuxRawImage.notNull()) sAuxCount--;
@@ -3096,7 +3125,11 @@ void LLViewerLODTexture::processTextureStats()
         mDesiredDiscardLevel = llmin(getMaxDiscardLevel() + 1, (S32)discard_level);
         // Clamp to min desired discard
         mDesiredDiscardLevel = llmin(mMinDesiredDiscardLevel, mDesiredDiscardLevel);
-
+        // <FS:minerjr>
+        // Never go above the max discard level (The code above says not to go over the
+        // max, but adds 1 to it...This code makes sure it never goes over the MAX_DISCARD_LEVEL
+        mDesiredDiscardLevel = llmin(MAX_DISCARD_LEVEL, mDesiredDiscardLevel);
+        // </FS:minerjr>
         //
         // At this point we've calculated the quality level that we want,
         // if possible.  Now we check to see if we have it, and take the
