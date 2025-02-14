@@ -773,7 +773,11 @@ bool LLImageGL::setImage(const U8* data_in, bool data_hasmips /* = false */, S32
         {
             // NOTE: data_in points to largest image; smaller images
             // are stored BEFORE the largest image
-            for (S32 d=mCurrentDiscardLevel; d<=mMaxDiscardLevel; d++)
+            // <FS:minerjr>
+            //for (S32 d=mCurrentDiscardLevel; d<=mMaxDiscardLevel; d++)
+            // Added bounds check for the MAX_DISCARD_LEVEL
+            for (S32 d=mCurrentDiscardLevel; d<=mMaxDiscardLevel && d <= MAX_DISCARD_LEVEL; d++)
+            // </FS:minerjr>
             {
 
                 S32 w = getWidth(d);
@@ -1805,7 +1809,11 @@ bool LLImageGL::readBackRaw(S32 discard_level, LLImageRaw* imageraw, bool compre
         discard_level = mCurrentDiscardLevel;
     }
 
-    if (mTexName == 0 || discard_level < mCurrentDiscardLevel || discard_level > mMaxDiscardLevel )
+    // <FS:minerjr>
+    //if (mTexName == 0 || discard_level < mCurrentDiscardLevel || discard_level > mMaxDiscardLevel )
+    // Added bounds check for the MAX_DISCARD_LEVEL
+    if (mTexName == 0 || discard_level < mCurrentDiscardLevel || discard_level > mMaxDiscardLevel || discard_level > MAX_DISCARD_LEVEL)
+    // <FS:minerjr>
     {
         return false;
     }

@@ -924,13 +924,19 @@ extern bool gCubeSnapshot;
 void LLViewerTextureList::updateImageDecodePriority(LLViewerFetchedTexture* imagep, bool flush_images)
 {
     llassert(!gCubeSnapshot);
-
+    // <FS:minerjr>
+    // Moved up here so we could use the extra debug commands below
+    F32 max_vsize = 0.f;
+    // </FS:minerjr>
     if (imagep->getBoostLevel() < LLViewerFetchedTexture::BOOST_HIGH)  // don't bother checking face list for boosted textures
     {
         static LLCachedControl<F32> texture_scale_min(gSavedSettings, "TextureScaleMinAreaFactor", 0.04f);
         static LLCachedControl<F32> texture_scale_max(gSavedSettings, "TextureScaleMaxAreaFactor", 25.f);
 
-        F32 max_vsize = 0.f;
+        // <FS:minerjr>
+        // Moved outside the if statement so we could use the extra debug commands below
+        //F32 max_vsize = 0.f;
+        // <FS:minerjr>
         bool on_screen = false;
 
         U32 face_count = 0;
@@ -1020,6 +1026,18 @@ void LLViewerTextureList::updateImageDecodePriority(LLViewerFetchedTexture* imag
         imagep->addTextureStats(max_vsize);
     }
 
+    // <FS:minerjr>
+    // Extra debugging information if needed
+    /*
+    LL_WARNS() << imagep->getID() << " " << llformat("Texture Max_Vsize/mMaxVirtS %d/%d - DisLvl/DesiredDisLvl %d/%d -- Width/FullWidth %d/%d",
+        (S32)sqrtf(max_vsize),
+        (S32)sqrtf(imagep->mMaxVirtualSize),
+        imagep->getDiscardLevel(),
+        imagep->getDesiredDiscardLevel(),
+        imagep->getWidth(),
+        imagep->getFullWidth()) << LL_ENDL;
+        */
+    // </FS:minerjr>
 #if 0
     imagep->setDebugText(llformat("%d/%d - %d/%d -- %d/%d",
         (S32)sqrtf(max_vsize),
@@ -1128,6 +1146,8 @@ F32 LLViewerTextureList::updateImagesCreateTextures(F32 max_time)
         imagep->mCreatePending = false;
         mCreateTextureList.pop();
 
+        // <FS:minerjr>
+        /*
         if (imagep->hasGLTexture() && imagep->getDiscardLevel() < imagep->getDesiredDiscardLevel())
         {
             // NOTE: this may happen if the desired discard reduces while a decode is in progress and does not
@@ -1136,6 +1156,35 @@ F32 LLViewerTextureList::updateImagesCreateTextures(F32 max_time)
             LL_WARNS_ONCE("Texture") << "Texture will be downscaled immediately after loading." << LL_ENDL;
             imagep->scaleDown();
         }
+        */
+        // So this is the most important line and this is what fixes 90% of the issues
+        // So, if you only downscale the images that are suppose to be downscaled, it removes all the fighting the system has been doing.
+        // use the same code as the updateImageDecodePriority as to what should be downscaled. So only LOD textures and only BoostLevel < BOOST_HIGH
+        // The system was flooding the threaded fetch system with requests for Discard > MAX_DISARD_LEVEL images, which were not valid.
+        if (imagep->hasGLTexture() && imagep->getDiscardLevel() < imagep->getDesiredDiscardLevel() && imagep->getBoostLevel() < LLGLTexture::BOOST_HIGH && imagep->getType() == LLViewerTexture::LOD_TEXTURE)// && !imagep->getDontDiscard())
+        {
+            //LL_WARNS("Texture") << imagep->getID() << " Texture will be downscaled immediately after loading." << "Discard Level: " << imagep->getDiscardLevel() << " Desired Discard: " << imagep->getDesiredDiscardLevel() << " Num Faces: " << imagep->getTotalNumFaces() << " Num of Refs: " << imagep->getNumRefs() << " Num of Vols: " << imagep->getNumVolumes(0) <<  LL_ENDL;
+            //imagep->scaleDown();
+            
+            //if (imagep->getDiscardLevel() >= 0 && imagep->getDiscardLevel() <= MAX_DISCARD_LEVEL
+            //    && imagep->getDesiredDiscardLevel() >= 0 && imagep->getDesiredDiscardLevel() <= MAX_DISCARD_LEVEL)
+            //{
+                //LL_WARNS("Texture") << imagep->getID() << " Texture will be downscaled immediately after loading." << "Discard Level: " << imagep->getDiscardLevel() << " Desired Discard: " << imagep->getDesiredDiscardLevel() << " Num Faces: " << imagep->getTotalNumFaces() << " Num of Refs: " << imagep->getNumRefs() << " Num of Vols: " << imagep->getNumVolumes(0) << " Image Type: " << imagep->getFTType() << " Boost Lvl: " << imagep->getBoostLevel() << " Don't Discard: " << (imagep->getDontDiscard() ? "True" : "False") << " URL: " << imagep->getUrl() << LL_ENDL;
+                
+                imagep->scaleDown();
+            //}
+            // At one point I was going to delete the objects that went > MAX_DISCARD_LEVEL, but it turns out that is used for the FastChace (using values outside bounds for valid loading)
+            // and 
+            /*
+            else
+            {
+                LL_WARNS("Texture") << imagep->getID() << " Texture will be deleted immediately after loading." << "Discard Level: " << imagep->getDiscardLevel() << " Desired Discard: " << imagep->getDesiredDiscardLevel() << " Num Faces: " << imagep->getTotalNumFaces() << " Num of Refs: " << imagep->getNumRefs() << " Num of Vols: " << imagep->getNumVolumes(0) << " Image Type: " << imagep->getFTType() << " Boost Lvl: " << imagep->getBoostLevel() << " Don't Discard: " << (imagep->getDontDiscard() ? "True" : "False") << " URL: " << imagep->getUrl() << LL_ENDL;
+                // We will delete the image
+                deleteImage(imagep);
+            }
+            */
+        }
+        // </FS:minerjr>
 
         if (create_timer.getElapsedTimeF32() > max_time)
         {
@@ -1168,24 +1217,43 @@ F32 LLViewerTextureList::updateImagesCreateTextures(F32 max_time)
             llassert(image->mDownScalePending);
 
             // <FS:minerjr>
-            //LLImageGL* img = image->getGLTexture();
-            //if (img && img->getHasGLTexture())
-            //{
-            //    img->scaleDown(image->getDesiredDiscardLevel());
-            //}            
-            // Check what the new desired discard level is and if we have it already on the raw image list
-            if (!image->tryToUseRawImagesToScaleDown(image->getDesiredDiscardLevel()))
-            {            
-                LLImageGL* img = image->getGLTexture();
-                if (img && img->getHasGLTexture())
-                {
-                    img->scaleDown(image->getDesiredDiscardLevel());                    
-                }
+            /*
+            LLImageGL* img = image->getGLTexture();
+            if (img && img->getHasGLTexture())
+            {
+                img->scaleDown(image->getDesiredDiscardLevel());
             }
-            // </FS:minerjr>
 
             image->mDownScalePending = false;
             mDownScaleQueue.pop();
+            */
+            // Was looking at deleteing any image that wanted to go beyond the MAX_DISCARD_LEVEL
+            /*
+            if (image->getDesiredDiscardLevel() < 0 || image->getDesiredDiscardLevel() > MAX_DISCARD_LEVEL)
+            {
+                mDownScaleQueue.pop();
+                deleteImage(image);
+            }
+            else
+            */
+            // We now only scale down LOD textures that have a boost level below BOOST_HIGH
+            if (image->mBoostLevel < LLGLTexture::BOOST_HIGH && image->getType() == LLViewerTexture::LOD_TEXTURE)
+            {
+				if (!image->tryToUseRawImagesToScaleDown(image->getDesiredDiscardLevel()))
+				{
+                	LLImageGL* img = image->getGLTexture();
+	                if (img && img->getHasGLTexture())
+    	            {
+        	            //LL_WARNS("Texture") << image->getID() << " Scaling Down Before. " << "Discard Level: " << image->getDiscardLevel() << " Desired Discard: " << image->getDesiredDiscardLevel() << LL_ENDL;
+            	        // The img-scaleDown does bounds checking of the desired discard level on it's own
+                	    img->scaleDown(image->getDesiredDiscardLevel());
+                    	//LL_WARNS("Texture") << image->getID() << " Scaling Down After. " << "Discard Level: " << image->getDiscardLevel() << " Desired Discard: " << image->getDesiredDiscardLevel() << LL_ENDL;
+	                }
+				}
+                image->mDownScalePending = false;
+                mDownScaleQueue.pop();
+            }
+            // </FS:minerjr>
 
             if (create_timer.getElapsedTimeF32() > max_time && --min_count <= 0)
             {

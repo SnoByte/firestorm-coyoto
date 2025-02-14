@@ -544,6 +544,10 @@ bool LLTextureCacheRemoteWorker::doWrite()
             || (mDataSize <= 0) // Things will go badly wrong if mDataSize is nul or negative...
             || (mImageSize < mDataSize)
             || (mRawDiscardLevel < 0)
+            // <FS:minerjr>
+            // Added bounds check for the MAX_DISCARD_LEVEL
+            || (mRawDiscardLevel > MAX_DISCARD_LEVEL)
+            // </FS:minerjr>
             || (mRawImage->isBufferInvalid())) // decode failed or malfunctioned, don't write
         {
             LL_WARNS() << "INIT state check failed for image: " << mID << " Size: " << mImageSize << " DataSize: " << mDataSize << " Discard:" << mRawDiscardLevel << LL_ENDL;
@@ -2000,7 +2004,10 @@ LLTextureCache::handle_t LLTextureCache::writeToCache(const LLUUID& id,
                                                       LLPointer<LLImageRaw> rawimage, S32 discardlevel,
                                                       WriteResponder* responder)
 {
-    if (mReadOnly)
+    // <FS:minerjr>
+    // Added bounds check for the MAX_DISCARD_LEVEL
+    if (mReadOnly || discardlevel > MAX_DISCARD_LEVEL)
+    // </FS:minerjr>
     {
         delete responder;
         return LLWorkerThread::nullHandle();
@@ -2108,13 +2115,36 @@ bool LLTextureCache::writeToFastCache(LLUUID image_id, S32 id, LLPointer<LLImage
     c = raw->getComponents();
 
     S32 i = 0 ;
+    // <FS:minerjr>
+    // Added a sanity check on the raw texture being passed in
+    // If it is not well formed or is beoyond the range of the MAX_DISCARD_LEVEL or below 0, then 
+    if (w*h*c == 0 || discardlevel > MAX_DISCARD_LEVEL || discardlevel < 0)
+    {
+        // Invalid texture to try to save
+        LL_ERRS() << "Attempted to write Invalid raw image to fastcache" << LL_ENDL;
+        return false;
+    }
+    // </FS:minerjr>
 
     // Search for a discard level that will fit into fast cache
-    while(((w >> i) * (h >> i) * c) > TEXTURE_FAST_CACHE_DATA_SIZE)
+    // <FS:minerjr>
+    //while(((w >> i) * (h >> i) * c) > TEXTURE_FAST_CACHE_DATA_SIZE)
+    while(((w >> i) * (h >> i) * c) > TEXTURE_FAST_CACHE_DATA_SIZE && (i + discardlevel) < MAX_DISCARD_LEVEL)
+    // </FS:minerjr>
     {
         ++i ;
     }
 
+    // <FS:minerjr>
+    // Added additional bounds check to make sure the fast chache is not written to by a texture
+    // over the MAX_DISCARD_LEVEL
+    if (discardlevel + i > MAX_DISCARD_LEVEL)
+    {
+        // Invalid texture to try to save
+        LL_ERRS() << "Attempted to write Invalid raw image to fastcache" << LL_ENDL;
+        return false;
+    }
+    // </FS:minerjr>
     if(i)
     {
         w >>= i;

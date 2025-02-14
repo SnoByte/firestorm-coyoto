@@ -37,14 +37,22 @@
 
 LLLocalTextureObject::LLLocalTextureObject() :
     mIsBakedReady(false),
-    mDiscard(MAX_DISCARD_LEVEL+1)
+    // <FS:minerjr>
+    // All local files have a discard of MAX_DISCARD_LEVEL + 1 (which we want to check for, so make it much father out to make sure we don't
+    // get local textures in captured logs.
+    mDiscard(MAX_DISCARD_LEVEL+10)
+    // </FS:minerjr> 
 {
     mImage = NULL;
 }
 
 LLLocalTextureObject::LLLocalTextureObject(LLGLTexture* image, const LLUUID& id) :
     mIsBakedReady(false),
-    mDiscard(MAX_DISCARD_LEVEL+1)
+    // <FS:minerjr>
+    // All local files have a discard of MAX_DISCARD_LEVEL + 1 (which we want to check for, so make it much father out to make sure we don't
+    // get local textures in captured logs.
+    mDiscard(MAX_DISCARD_LEVEL+10)
+    // </FS:minerjr> 
 {
     mImage = image;
     gGL.getTexUnit(0)->bind(mImage);
