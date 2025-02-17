@@ -1024,6 +1024,12 @@ public:
                             addText(xpos, ypos, llformat("ID: %s v_size: %.3f", uuid_str.c_str(), tex->getMaxVirtualSize()));
                             ypos += y_inc;
 
+                            uuid_str;
+                            tex->getID().toString(uuid_str);
+
+                            addText(xpos, ypos, llformat("ID: %s", uuid_str.c_str()));
+                            ypos += y_inc;
+
                             addText(xpos, ypos, llformat("discard level: %d desired level: %d Missing: %s", tex->getDiscardLevel(),
                                 tex->getDesiredDiscardLevel(), tex->isMissingAsset() ? "Y" : "N"));
                             ypos += y_inc;

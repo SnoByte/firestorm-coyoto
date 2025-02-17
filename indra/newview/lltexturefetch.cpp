@@ -1065,6 +1065,17 @@ void LLTextureFetchWorker::setupPacketData()
 void LLTextureFetchWorker::setDesiredDiscard(S32 discard, S32 size)
 {
     bool prioritize = false;
+    // <FS:minerjr>
+    // Clamp the discard level to between 0 and MAX_DISCARD_LEVEL
+    if (discard < 0)
+    {
+        discard = 0;
+    }
+    else if (discard > MAX_DISCARD_LEVEL)
+    {
+        discard = MAX_DISCARD_LEVEL;
+    }
+    // </FS:minerjr>
     if (mDesiredDiscard != discard)
     {
         if (!haveWork())
@@ -1074,7 +1085,7 @@ void LLTextureFetchWorker::setDesiredDiscard(S32 discard, S32 size)
                 addWork(0);
             }
         }
-        else if (mDesiredDiscard < discard)
+        else if (mDesiredDiscard < discard && mDesiredDiscard >= 0)
         {
             prioritize = true;
         }
@@ -1138,12 +1149,18 @@ bool LLTextureFetchWorker::doWork(S32 param)
     static const LLCore::HttpStatus http_not_found(HTTP_NOT_FOUND);                     // 404
     static const LLCore::HttpStatus http_service_unavail(HTTP_SERVICE_UNAVAILABLE);     // 503
     static const LLCore::HttpStatus http_not_sat(HTTP_REQUESTED_RANGE_NOT_SATISFIABLE); // 416;
+    static const LLCore::HttpStatus http_partial_content(HTTP_PARTIAL_CONTENT);
 
     LLMutexLock lock(&mWorkMutex);                                      // +Mw
 
     // <FS:minerjr>
-    //LL_WARNS("Texture") << mID << " state " << e_state_name[mState] << ": Priority: " << llformat("%8.0f",mImagePriority)
-    //    << " Desired Discard: " << mDesiredDiscard << " Desired Size: " << mDesiredSize << " Can Use Http: " << (mCanUseHTTP ? "True" : "False") << " NumFaces: " << LL_ENDL;
+    if (mID.asString().compare("5748decc-f629-461c-9a36-a35a221fe21f") == 0 && mState == INIT)
+    {
+        LL_INFOS("Texture") << mID << " state " << e_state_name[mState] << ": Priority: " << llformat("%8.0f",mImagePriority)
+            << " Desired Discard: " << mDesiredDiscard << " Desired Size: " << mDesiredSize << " Can Use Http: " << (mCanUseHTTP ? "True" : "False") << " NumFaces: " << LL_ENDL;
+    }
+    LL_DEBUGS("Texture") << mID << " state " << e_state_name[mState] << ": Priority: " << llformat("%8.0f",mImagePriority)
+        << " Desired Discard: " << mDesiredDiscard << " Desired Size: " << mDesiredSize << " Can Use Http: " << (mCanUseHTTP ? "True" : "False") << " NumFaces: " << LL_ENDL;
     // Added additional bounds check to exit if reached by a bad fetch request, should not get here anymore, but just in case.
     if (mDesiredDiscard < 0 || mDesiredDiscard > MAX_DISCARD_LEVEL)
     {
@@ -1351,6 +1368,8 @@ bool LLTextureFetchWorker::doWork(S32 param)
             {
                 LL_WARNS(LOG_TXT) << mID << " mLoadedDiscard is " << mLoadedDiscard
                                   << ", should be >=0 && <= MAX_DISCARD_LEVEL" << LL_ENDL; // This should do something else like exit or try to load the URL instead.
+			    //setState(DONE);
+                //return true;
             }
             // </FS:minerjr>
             setState(DECODE_IMAGE);
@@ -1516,10 +1535,15 @@ bool LLTextureFetchWorker::doWork(S32 param)
                 return true; // failed
             }
 
-            if (mLoadedDiscard < 0)
+            if (mLoadedDiscard < 0 || mLoadedDiscard > MAX_DISCARD_LEVEL)
             {
                 LL_WARNS(LOG_TXT) << mID << " mLoadedDiscard is " << mLoadedDiscard
                                   << ", should be >=0" << LL_ENDL;
+                // <FS:minerjr>
+                // Prevent error when trying to decode an invalid texture size
+				//setState(DONE);
+                //return true; // failed
+                // </FS:minerjr>
             }
             setState(DECODE_IMAGE);
             mWriteToCacheState = SHOULD_WRITE;
@@ -1779,6 +1803,11 @@ bool LLTextureFetchWorker::doWork(S32 param)
                     // Allowed, we'll accept whatever data we have as complete.
                     mHaveAllData = true;
                 }
+                else if (http_partial_content == mGetStatus)
+                {
+
+                }
+
                 else
                 {
                     LL_INFOS(LOG_TXT) << "HTTP GET failed for: " << mUrl
@@ -1912,10 +1941,14 @@ bool LLTextureFetchWorker::doWork(S32 param)
             mHttpReplyOffset = 0;
 
             mLoadedDiscard = mRequestedDiscard;
-            if (mLoadedDiscard < 0)
+            if (mLoadedDiscard < 0 || mLoadedDiscard > MAX_DISCARD_LEVEL)
             {
                 LL_WARNS(LOG_TXT) << mID << " mLoadedDiscard is " << mLoadedDiscard
                                   << ", should be >=0" << LL_ENDL;
+                // <FS:minerjr>
+				//setState(DONE);
+                //return true; // invalid discard
+                // </FS:minerjr>
             }
             setState(DECODE_IMAGE);
             if (mWriteToCacheState != NOT_WRITE)
@@ -2150,6 +2183,22 @@ void LLTextureFetchWorker::onCompleted(LLCore::HttpHandle handle, LLCore::HttpRe
 
     mHttpActive = false;
 
+    const LLCore::HttpHeaders::ptr_t headers = response->getHeaders();;
+    if (headers)
+    {
+        for (LLCore::HttpHeaders::const_iterator it(response->getHeaders()->begin()); response->getHeaders()->end() != it; ++it)
+        {
+            static const char sep[] = ": ";
+            std::string header;
+            header.reserve((*it).first.size() + (*it).second.size() + sizeof(sep));
+            header.append((*it).first);
+            header.append(sep);
+            header.append((*it).second);
+
+            LL_INFOS() << "Header: " << header << LL_ENDL;
+        }
+    }
+
     if (log_to_viewer_log || log_to_sim)
     {
         mFetcher->mTextureInfo.setRequestStartTime(mID, mMetricsStartTime.value());
@@ -2171,6 +2220,7 @@ void LLTextureFetchWorker::onCompleted(LLCore::HttpHandle handle, LLCore::HttpRe
     bool success = true;
     bool partial = false;
     LLCore::HttpStatus status(response->getStatus());
+
     if (!status && (mFTType == FTT_SERVER_BAKE))
     {
         LL_INFOS(LOG_TXT) << mID << " state " << e_state_name[mState] << LL_ENDL;
@@ -2195,7 +2245,7 @@ void LLTextureFetchWorker::onCompleted(LLCore::HttpHandle handle, LLCore::HttpRe
     {
         mFetchRetryPolicy.onSuccess();
     }
-
+    
     std::string reason(status.toString());
     setGetStatus(status, reason);
     LL_DEBUGS(LOG_TXT) << "HTTP COMPLETE: " << mID
@@ -2424,11 +2474,27 @@ bool LLTextureFetchWorker::processSimulatorPackets()
 
 // Threads:  Ttf
 // Locks:  Mw
-S32 LLTextureFetchWorker::callbackHttpGet(LLCore::HttpResponse * response,
+S32 LLTextureFetchWorker::callbackHttpGet(LLCore::HttpResponse* response,
                                           bool partial, bool success)
 {
-    S32 data_size = 0 ;
+    S32 data_size = 0;
 
+    LL_INFOS() << "Partial Download: " << response->getContentType() << LL_ENDL;
+    const LLCore::HttpHeaders::ptr_t headers = response->getHeaders();;
+    if (headers)
+    {
+        for (LLCore::HttpHeaders::const_iterator it(response->getHeaders()->begin()); response->getHeaders()->end() != it; ++it)
+        {
+            static const char sep[] = ": ";
+            std::string header;
+            header.reserve((*it).first.size() + (*it).second.size() + sizeof(sep));
+            header.append((*it).first);
+            header.append(sep);
+            header.append((*it).second);
+
+            LL_INFOS() << "Header: " << header << LL_ENDL;
+        }
+    }
     if (mState != WAIT_HTTP_REQ)
     {
         LL_WARNS(LOG_TXT) << "callbackHttpGet for unrequested fetch worker: " << mID
@@ -3147,9 +3213,9 @@ bool LLTextureFetch::getRequestFinished(const LLUUID& id, S32& discard_level, S3
         else
         {
             worker->lockWorkMutex();                                    // +Mw
-            if ((worker->mDecodedDiscard >= 0) &&
+            if ((worker->mDecodedDiscard >= 0 && worker->mDecodedDiscard <= MAX_DISCARD_LEVEL) &&
                 (worker->mDecodedDiscard < discard_level || discard_level < 0) &&
-                (worker->mState >= LLTextureFetchWorker::WAIT_ON_WRITE))
+                (worker->mState >= LLTextureFetchWorker::DONE))
             {
                 // Not finished, but data is ready
                 discard_level = worker->mDecodedDiscard;
@@ -3900,7 +3966,7 @@ S32 LLTextureFetch::getLastRawImage(const LLUUID& id,
     LL_PROFILE_ZONE_SCOPED;
     S32 decoded_discard = -1;
     LLTextureFetchWorker* worker = getWorker(id);
-    if (worker && !worker->haveWork() && worker->mDecodedDiscard >= 0)
+    if (worker && !worker->haveWork() && worker->mDecodedDiscard >= 0 && worker->mDecodedDiscard <= MAX_DISCARD_LEVEL)
     {
             worker->lockWorkMutex();                                    // +Mw
             raw = worker->mRawImage;
