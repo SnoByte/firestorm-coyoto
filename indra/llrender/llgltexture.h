@@ -99,8 +99,10 @@ public:
 
     virtual const LLUUID& getID() const;
 
-    void setBoostLevel(S32 level);
-    S32  getBoostLevel() { return mBoostLevel; }
+    void setBoostLevel(S8 level);
+    void restoreBoostLevel();
+    void storeBoostLevel();
+    S8  getBoostLevel() { return mBoostLevel; }
 
     S32 getFullWidth() const { return mFullWidth; }
     S32 getFullHeight() const { return mFullHeight; }
@@ -182,7 +184,8 @@ public:
     /*virtual*/ LLImageGL* getGLTexture() const ;
 
 protected:
-    S32 mBoostLevel;                // enum describing priority level
+    S8 mBoostLevel;                // enum describing priority level
+    S8 mPrevBoostLevel;            // enum describing priority level
     U32 mFullWidth;
     U32 mFullHeight;
     bool mUseMipMaps;

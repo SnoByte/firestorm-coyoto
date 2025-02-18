@@ -1154,7 +1154,7 @@ bool LLTextureFetchWorker::doWork(S32 param)
     LLMutexLock lock(&mWorkMutex);                                      // +Mw
 
     // <FS:minerjr>
-    if (mID.asString().compare("5748decc-f629-461c-9a36-a35a221fe21f") == 0 && mState == INIT)
+    if (mID.asString().compare("5748decc-f629-461c-9a36-a35a221fe21f") == 0)
     {
         LL_INFOS("Texture") << mID << " state " << e_state_name[mState] << ": Priority: " << llformat("%8.0f",mImagePriority)
             << " Desired Discard: " << mDesiredDiscard << " Desired Size: " << mDesiredSize << " Can Use Http: " << (mCanUseHTTP ? "True" : "False") << " NumFaces: " << LL_ENDL;
@@ -1447,6 +1447,11 @@ bool LLTextureFetchWorker::doWork(S32 param)
                     mCanUseCapability = true;
                     mRegionRetryAttempt = 0;
                     mLastRegionId = region->getRegionID();
+                    if (mID.asString().compare("5748decc-f629-461c-9a36-a35a221fe21f") == 0)
+                    {
+                        LL_INFOS("Texture") << mID << " state " << e_state_name[mState] << ": Priority: " << llformat("%8.0f",mImagePriority)
+                            << " Desired Discard: " << mDesiredDiscard << " Desired Size: " << mDesiredSize << " Can Use Http: " << (mCanUseHTTP ? "True" : "False") << " NumFaces: " << LL_ENDL;
+                    }
                 }
                 else
                 {
@@ -1730,6 +1735,12 @@ bool LLTextureFetchWorker::doWork(S32 param)
         // call releaseHttpSemaphore().
         if (mLoaded)
         {
+            // <FS:minerjr>
+            if (mID.asString().compare("5748decc-f629-461c-9a36-a35a221fe21f") == 0)
+            {
+                LL_INFOS("Texture") << mID << " state " << e_state_name[mState] << ": Priority: " << llformat("%8.0f",mImagePriority)
+                    << " Desired Discard: " << mDesiredDiscard << " Desired Size: " << mDesiredSize << " Can Use Http: " << (mCanUseHTTP ? "True" : "False") << " NumFaces: " << LL_ENDL;
+            }
             S32 cur_size = mFormattedImage.notNull() ? mFormattedImage->getDataSize() : 0;
             if (mRequestedSize < 0)
             {
@@ -1803,11 +1814,6 @@ bool LLTextureFetchWorker::doWork(S32 param)
                     // Allowed, we'll accept whatever data we have as complete.
                     mHaveAllData = true;
                 }
-                else if (http_partial_content == mGetStatus)
-                {
-
-                }
-
                 else
                 {
                     LL_INFOS(LOG_TXT) << "HTTP GET failed for: " << mUrl
@@ -1841,6 +1847,10 @@ bool LLTextureFetchWorker::doWork(S32 param)
                 releaseHttpSemaphore();
                 LL_WARNS(LOG_TXT) << mID << " abort: fail harder" << LL_ENDL;
                 return true; // failed
+            }
+            else if (http_partial_content == mGetStatus)
+            {
+
             }
 
             // Clear the url since we're done with the fetch
@@ -2136,7 +2146,7 @@ bool LLTextureFetchWorker::doWork(S32 param)
         }
         else
         {
-            if (mDesiredDiscard < mDecodedDiscard)
+            if (mDesiredDiscard <= mDecodedDiscard)
             {
                 // We're waiting for this write to complete before we can receive more data
                 // (we can't touch mFormattedImage until the write completes)
@@ -2180,7 +2190,11 @@ void LLTextureFetchWorker::onCompleted(LLCore::HttpHandle handle, LLCore::HttpRe
     static LLCachedControl<bool> log_texture_traffic(gSavedSettings, "LogTextureNetworkTraffic", false) ;
 
     LLMutexLock lock(&mWorkMutex);                                      // +Mw
-
+    if (mID.asString().compare("5748decc-f629-461c-9a36-a35a221fe21f") == 0)
+    {
+        LL_INFOS("Texture") << mID << " state " << e_state_name[mState] << ": Priority: " << llformat("%8.0f",mImagePriority)
+            << " Desired Discard: " << mDesiredDiscard << " Desired Size: " << mDesiredSize << " Can Use Http: " << (mCanUseHTTP ? "True" : "False") << " NumFaces: " << LL_ENDL;
+    }
     mHttpActive = false;
 
     const LLCore::HttpHeaders::ptr_t headers = response->getHeaders();;
@@ -2478,7 +2492,11 @@ S32 LLTextureFetchWorker::callbackHttpGet(LLCore::HttpResponse* response,
                                           bool partial, bool success)
 {
     S32 data_size = 0;
-
+    if (mID.asString().compare("5748decc-f629-461c-9a36-a35a221fe21f") == 0)
+    {
+        LL_INFOS("Texture") << mID << " state " << e_state_name[mState] << ": Priority: " << llformat("%8.0f",mImagePriority)
+            << " Desired Discard: " << mDesiredDiscard << " Desired Size: " << mDesiredSize << " Can Use Http: " << (mCanUseHTTP ? "True" : "False") << " NumFaces: " << LL_ENDL;
+    }
     LL_INFOS() << "Partial Download: " << response->getContentType() << LL_ENDL;
     const LLCore::HttpHeaders::ptr_t headers = response->getHeaders();;
     if (headers)
@@ -2594,6 +2612,7 @@ S32 LLTextureFetchWorker::callbackHttpGet(LLCore::HttpResponse* response,
     }
 
     mLoaded = true;
+
 
     return data_size ;
 }

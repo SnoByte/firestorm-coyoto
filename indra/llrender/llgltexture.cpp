@@ -63,6 +63,7 @@ LLGLTexture::~LLGLTexture()
 void LLGLTexture::init()
 {
     mBoostLevel = LLGLTexture::BOOST_NONE;
+    mPrevBoostLevel = LLGLTexture::BOOST_NONE;
 
     mFullWidth = 0;
     mFullHeight = 0;
@@ -92,10 +93,10 @@ void LLGLTexture::dump()
     }
 }
 
-void LLGLTexture::setBoostLevel(S32 level)
+void LLGLTexture::setBoostLevel(S8 level)
 {
-    if(mBoostLevel != level)
-    {
+    if(mBoostLevel != level )
+    {        
         mBoostLevel = level ;
         if(mBoostLevel != LLGLTexture::BOOST_NONE
            && mBoostLevel != LLGLTexture::BOOST_ICON
@@ -105,6 +106,16 @@ void LLGLTexture::setBoostLevel(S32 level)
             setNoDelete() ;
         }
     }
+}
+
+void LLGLTexture::restoreBoostLevel()
+{
+    mBoostLevel = mPrevBoostLevel;
+}
+
+void LLGLTexture::storeBoostLevel()
+{
+    mPrevBoostLevel = mBoostLevel;
 }
 
 void LLGLTexture::forceActive()

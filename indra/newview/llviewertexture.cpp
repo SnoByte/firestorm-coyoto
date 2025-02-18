@@ -713,7 +713,7 @@ void LLViewerTexture::init(bool firstinit)
     mMaxVirtualSizeResetInterval = 1;
     mMaxVirtualSizeResetCounter = mMaxVirtualSizeResetInterval;
     mParcelMedia = NULL;
-
+    mBoostLevel = LLGLTexture::BOOST_NONE;
     memset(&mNumVolumes, 0, sizeof(U32)* LLRender::NUM_VOLUME_TEXTURE_CHANNELS);
     mVolumeList[LLRender::LIGHT_TEX].clear();
     mVolumeList[LLRender::SCULPT_TEX].clear();
@@ -759,7 +759,7 @@ void LLViewerTexture::dump()
             << LL_ENDL;
 }
 
-void LLViewerTexture::setBoostLevel(S32 level)
+void LLViewerTexture::setBoostLevel(S8 level)
 {
     if(mBoostLevel != level)
     {
@@ -1182,7 +1182,7 @@ void LLViewerFetchedTexture::init(bool firstinit)
     mKeptSavedRawImageTime = 0.f;
     mLastCallBackActiveTime = 0.f;
     mForceCallbackFetch = false;
-
+    mBoostLevel = LLGLTexture::BOOST_NONE;
     mFTType = FTT_UNKNOWN;
 }
 
@@ -1833,7 +1833,7 @@ void LLViewerFetchedTexture::processTextureStats()
                 mDesiredDiscardLevel =  llclamp(mDesiredDiscardLevel, (S8)0, (S8)getMaxDiscardLevel());
                 mDesiredDiscardLevel = llmin(mDesiredDiscardLevel, mMinDesiredDiscardLevel);
                 mDesiredDiscardLevel = llmin(mDesiredDiscardLevel, (S32)mLoadedCallbackDesiredDiscardLevel);
-                mDesiredDiscardLevel = llmin(mDesiredDiscardLevel, MAX_DISCARD_LEVEL);
+                //mDesiredDiscardLevel = llmin(mDesiredDiscardLevel, MAX_DISCARD_LEVEL);
             }
             mKnownDrawSizeChanged = false;
 
@@ -1890,7 +1890,7 @@ bool LLViewerFetchedTexture::isActiveFetching()
     return mFetchState > 8 && mFetchState < 11 && monitor_enabled; //in state of WAIT_HTTP_REQ or DECODE_IMAGE.
 }
 
-void LLViewerFetchedTexture::setBoostLevel(S32 level)
+void LLViewerFetchedTexture::setBoostLevel(S8 level)
 {
     LLViewerTexture::setBoostLevel(level);
 
@@ -1903,6 +1903,10 @@ void LLViewerFetchedTexture::setBoostLevel(S32 level)
 bool LLViewerFetchedTexture::processFetchResults(S32& desired_discard, S32 current_discard, S32 fetch_discard, F32 decode_priority)
 {
     // We may have data ready regardless of whether or not we are finished (e.g. waiting on write)
+    if (getID().asString().compare("5748decc-f629-461c-9a36-a35a221fe21f") == 0)
+    {
+        printf("Hi");
+    }
     if (mRawImage.notNull())
     {
         LL_PROFILE_ZONE_NAMED_CATEGORY_TEXTURE("vftuf - has raw image");
@@ -3055,6 +3059,7 @@ void LLViewerLODTexture::init(bool firstinit)
     mTexelsPerImage = 64*64;
     mDiscardVirtualSize = 0.f;
     mCalculatedDiscardLevel = -1.f;
+    mBoostLevel = LLGLTexture::BOOST_NONE;
 }
 
 //virtual
@@ -3197,7 +3202,7 @@ void LLViewerLODTexture::processTextureStats()
     // unset it immediately after we consume it
     if (getBoostLevel() == BOOST_SELECTED)
     {
-        setBoostLevel(BOOST_NONE);
+        restoreBoostLevel();
     }
 }
 
