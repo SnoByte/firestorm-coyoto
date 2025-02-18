@@ -579,7 +579,8 @@ bool LLTextureCacheRemoteWorker::doWrite()
                 // mRawImage is not entirely safe here since it is a pointer to one owned by cache worker,
                 // it could have been retrieved via getRequestFinished() and then modified.
                 // If writeToFastCache crashes, something is wrong around fetch worker.
-                if(!mCache->writeToFastCache(mID, idx, mRawImage, mRawDiscardLevel))
+                S32 result = mCache->writeToFastCache(mID, idx, mRawImage, mRawDiscardLevel);
+                if(result < 0)
                 {
                     LL_WARNS() << "writeToFastCache failed" << LL_ENDL;
                     mDataSize = -1; // failed
@@ -1954,6 +1955,10 @@ LLTextureCache::handle_t LLTextureCache::readFromCache(const LLUUID& id,
                                                        S32 offset, S32 size, ReadResponder* responder)
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_TEXTURE;
+    if (id.asString().compare("5748decc-f629-461c-9a36-a35a221fe21f") == 0)
+    {
+        LL_INFOS() << " Out test texture" << LL_ENDL;
+    }
     // Note: checking to see if an entry exists can cause a stall,
     //  so let the thread handle it
     LLMutexLock lock(&mWorkersMutex);
@@ -2001,9 +2006,13 @@ LLTextureCache::handle_t LLTextureCache::writeToCache(const LLUUID& id,
                                                       LLPointer<LLImageRaw> rawimage, S32 discardlevel,
                                                       WriteResponder* responder)
 {
+    if (id.asString().compare("5748decc-f629-461c-9a36-a35a221fe21f") == 0)
+    {
+        LL_INFOS() << " Out test texture" << LL_ENDL;
+    }
     // <FS:minerjr>
     // Added bounds check for the MAX_DISCARD_LEVEL
-    if (mReadOnly || discardlevel > MAX_DISCARD_LEVEL)
+    if (mReadOnly || discardlevel > MAX_DISCARD_LEVEL || discardlevel < 0)
     // </FS:minerjr>
     {
         delete responder;
@@ -2038,6 +2047,10 @@ LLTextureCache::handle_t LLTextureCache::writeToCache(const LLUUID& id,
 //called in the main thread
 LLPointer<LLImageRaw> LLTextureCache::readFromFastCache(const LLUUID& id, S32& discardlevel)
 {
+    if (id.asString().compare("5748decc-f629-461c-9a36-a35a221fe21f") == 0)
+    {
+        LL_INFOS() << " Out test texture" << LL_ENDL;
+    }
     U32 offset;
     {
         LLMutexLock lock(&mHeaderMutex);
@@ -2075,6 +2088,16 @@ LLPointer<LLImageRaw> LLTextureCache::readFromFastCache(const LLUUID& id, S32& d
             closeFastCache();
             return NULL;
         }
+
+        // <FS:minerjr>
+        // Check if the discard level is valid, if not, exit
+        if (head[3] < 0 || head[3] > MAX_DISCARD_LEVEL)
+        {
+            closeFastCache();
+            return NULL;
+        }
+        // <FS:minerjr>
+
         discardlevel = head[3];
 
         data = (U8*)ll_aligned_malloc_16(image_size);
@@ -2093,17 +2116,23 @@ LLPointer<LLImageRaw> LLTextureCache::readFromFastCache(const LLUUID& id, S32& d
 }
 
 //return the fast cache location
-bool LLTextureCache::writeToFastCache(LLUUID image_id, S32 id, LLPointer<LLImageRaw> raw, S32 discardlevel)
+// <FS:minerjr>
+// Added return value to check if though too big for fast cache, could fit into normal cache
+// < 0 error, 1 could not write but valid disard level, 2 did fit into fash cache and valid discard level
+S32 LLTextureCache::writeToFastCache(LLUUID image_id, S32 id, LLPointer<LLImageRaw> raw, S32 discardlevel)
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_TEXTURE;
 
     LLImageDataSharedLock lock(raw);
-
+    if (image_id.asString().compare("5748decc-f629-461c-9a36-a35a221fe21f") == 0)
+    {
+        LL_INFOS() << " Out test texture" << LL_ENDL;
+    }
     //rescale image if needed
     if (raw.isNull() || raw->isBufferInvalid() || !raw->getData())
     {
         LL_ERRS() << "Attempted to write NULL raw image to fastcache" << LL_ENDL;
-        return false;
+        return -1;
     }
 
     S32 w, h, c;
@@ -2119,7 +2148,7 @@ bool LLTextureCache::writeToFastCache(LLUUID image_id, S32 id, LLPointer<LLImage
     {
         // Invalid texture to try to save
         LL_ERRS() << "Attempted to write Invalid raw image to fastcache" << LL_ENDL;
-        return false;
+        return -2;
     }
     // </FS:minerjr>
 
@@ -2137,9 +2166,9 @@ bool LLTextureCache::writeToFastCache(LLUUID image_id, S32 id, LLPointer<LLImage
     // over the MAX_DISCARD_LEVEL
     if (discardlevel + i > MAX_DISCARD_LEVEL)
     {
-        // Invalid texture to try to save
+        // Invalid texture to try to save to fast cache, but could be saved to normal cach
         LL_ERRS() << "Attempted to write Invalid raw image to fastcache" << LL_ENDL;
-        return false;
+        return 1;
     }
     // </FS:minerjr>
     if(i)
@@ -2154,7 +2183,7 @@ bool LLTextureCache::writeToFastCache(LLUUID image_id, S32 id, LLPointer<LLImage
             if (raw->isBufferInvalid())
             {
                 LL_WARNS() << "Invalid image duplicate buffer" << LL_ENDL;
-                return false;
+                return -3;
             }
 
             raw->scale(w, h);
@@ -2192,7 +2221,7 @@ bool LLTextureCache::writeToFastCache(LLUUID image_id, S32 id, LLPointer<LLImage
         closeFastCache(true);
     }
 
-    return true;
+    return 2;
 }
 
 void LLTextureCache::openFastCache(bool first_time)

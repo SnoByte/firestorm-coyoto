@@ -137,7 +137,7 @@ public:
     /*virtual*/ bool isActiveFetching();
 
     /*virtual*/ const LLUUID& getID() const { return mID; }
-    virtual void setBoostLevel(S32 level);
+    virtual void setBoostLevel(S8 level);
     S32  getBoostLevel() { return mBoostLevel; }
     void setTextureListType(S32 tex_type) { mTextureListType = tex_type; }
     S32 getTextureListType() { return mTextureListType; }
@@ -226,6 +226,7 @@ public:
     static S32 sAuxCount;
     static LLFrameTimer sEvaluationTimer;
     static F32 sDesiredDiscardBias;
+    static F32 sPrevDesiredDiscardBias;
     static S32 sMaxSculptRez ;
     static U32 sMinLargeImageSize ;
     static U32 sMaxSmallImageSize ;
@@ -366,7 +367,7 @@ public:
     S32  getDesiredDiscardLevel()            { return mDesiredDiscardLevel; }
     void setMinDiscardLevel(S32 discard)    { mMinDesiredDiscardLevel = llmin(mMinDesiredDiscardLevel,(S8)discard); }
 
-    void setBoostLevel(S32 level) override;
+    void setBoostLevel(S8 level) override;
     bool updateFetch();
 
     void clearFetchedResults(); //clear all fetched results, for debug use.

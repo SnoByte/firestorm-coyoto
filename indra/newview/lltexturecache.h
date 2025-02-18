@@ -188,7 +188,10 @@ private:
 
     void openFastCache(bool first_time = false);
     void closeFastCache(bool forced = false);
-    bool writeToFastCache(LLUUID image_id, S32 cache_id, LLPointer<LLImageRaw> raw, S32 discardlevel);
+    // <FS:minerjr>
+    //bool writeToFastCache(LLUUID image_id, S32 cache_id, LLPointer<LLImageRaw> raw, S32 discardlevel);
+    S32 writeToFastCache(LLUUID image_id, S32 cache_id, LLPointer<LLImageRaw> raw, S32 discardlevel);
+    // </FS:minerjr>
 
 private:
     // Internal
