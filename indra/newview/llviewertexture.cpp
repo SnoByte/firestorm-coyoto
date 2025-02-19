@@ -1191,7 +1191,11 @@ void LLViewerFetchedTexture::init(bool firstinit)
     mKeptSavedRawImageTime = 0.f;
     mLastCallBackActiveTime = 0.f;
     mForceCallbackFetch = false;
+
+    // <FS:minerjr>
+    // Added default for boost level
     mBoostLevel = LLGLTexture::BOOST_NONE;
+    // </FS:minerjr>
     mFTType = FTT_UNKNOWN;
 }
 

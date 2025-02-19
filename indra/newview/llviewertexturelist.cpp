@@ -905,8 +905,10 @@ void LLViewerTextureList::updateImageDecodePriority(LLViewerFetchedTexture* imag
     // Moved up here so we could use the extra debug commands below
     F32 max_vsize = 0.f;
     if (imagep->getBoostLevel() < LLViewerFetchedTexture::BOOST_HIGH)// && imagep->getType() == LLViewerTexture::LOD_TEXTURE)  // don't bother checking face list for boosted textures
-    // </FS:minerjr>
+        // </FS:minerjr>
     {
+        F32 prevMaxVirtualSize = imagep->mMaxVirtualSize;
+        
         static LLCachedControl<F32> texture_scale_min(gSavedSettings, "TextureScaleMinAreaFactor", 0.04f);
         static LLCachedControl<F32> texture_scale_max(gSavedSettings, "TextureScaleMaxAreaFactor", 25.f);
 
@@ -923,7 +925,7 @@ void LLViewerTextureList::updateImageDecodePriority(LLViewerFetchedTexture* imag
         F32 bias = llclamp(max_discard - 2.f, 1.f, LLViewerTexture::sDesiredDiscardBias);
 
         // convert bias into a vsize scaler
-        bias = (F32) llroundf(powf(4, bias - 1.f));
+        bias = (F32)llroundf(powf(4, bias - 1.f));
 
         if (imagep->isViewerMediaTexture())
         {
@@ -979,7 +981,7 @@ void LLViewerTextureList::updateImageDecodePriority(LLViewerFetchedTexture* imag
                     vsize /= min_scale;
 
                     // apply bias to offscreen faces all the time, but only to onscreen faces when bias is large
-                    if (!face->mInFrustum || LLViewerTexture::sDesiredDiscardBias > 2.f)
+                    if (!face->mInFrustum || LLViewerTexture::sDesiredDiscardBias == 4.f)
                     {
                         vsize /= bias;
                     }
@@ -988,7 +990,7 @@ void LLViewerTextureList::updateImageDecodePriority(LLViewerFetchedTexture* imag
                     if (face->mInFrustum)
                     {
                         static LLCachedControl<F32> texture_camera_boost(gSavedSettings, "TextureCameraBoost", 8.f);
-                        vsize *= llmax(face->mImportanceToCamera*texture_camera_boost, 1.f);
+                        vsize *= llmax(face->mImportanceToCamera * texture_camera_boost, 1.f);
                     }
 
                     max_vsize = llmax(max_vsize, vsize);
@@ -1015,6 +1017,13 @@ void LLViewerTextureList::updateImageDecodePriority(LLViewerFetchedTexture* imag
         }
 
         imagep->addTextureStats(max_vsize);
+        if (fabs(prevMaxVirtualSize - imagep->mMaxVirtualSize) < 10.0f)
+        {
+            LL_INFOS() << imagep->getID() << " mMaxVirtualSize Start: " << prevMaxVirtualSize << LL_ENDL;
+            LL_INFOS() << imagep->getID() << " mMaxVirtualSize End  : " << imagep->mMaxVirtualSize << LL_ENDL;
+            LL_INFOS() << imagep->getID() << " Difference           : " << (imagep->mMaxVirtualSize - prevMaxVirtualSize) << LL_ENDL;
+            imagep->mMaxVirtualSize = prevMaxVirtualSize;
+        }
     }
     /*
     else
