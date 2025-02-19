@@ -955,7 +955,7 @@ size_t HttpOpRequest::headerCallback(void * data, size_t size, size_t nmemb, voi
         // Doesn't look well-formed, do minimal normalization on it
         name = os_strltrim(name);
     }
-    LL_WARNS() << " Http: " << (name ? name : "") << " - " << (value ? value : "") << LL_ENDL;
+    
     // Normalized, now reject headers with empty names.
     if (! *name)
     {
@@ -999,14 +999,12 @@ size_t HttpOpRequest::headerCallback(void * data, size_t size, size_t nmemb, voi
             op->mReplyOffset = first;
             op->mReplyLength = last - first + 1;
             op->mReplyFullLength = length;
-            LL_WARNS() << " Http: Partial Header" << "Reply Offset: " << first << " Reply Length: " << (last - first + 1) << " Length: " << length << LL_ENDL;
-            
+
         }
         else if (-1 == status)
         {
             // Response is badly formed and shouldn't be accepted
             op->mStatus = HttpStatus(HttpStatus::LLCORE, HE_INV_CONTENT_RANGE_HDR);
-            LL_WARNS() << " Http: Partial Header Invalid" << LL_ENDL;
         }
         else
         {

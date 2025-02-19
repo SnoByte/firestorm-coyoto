@@ -92,11 +92,14 @@ void LLGLTexture::dump()
         mGLTexturep->dump();
     }
 }
-
+// <FS:minerjr>
+//void LLGLTexture::setBoostLevel(S32 level)
+// Changed Changed from S32 to S8, to give up space and use the difference for a previous value
 void LLGLTexture::setBoostLevel(S8 level)
+// </FS:minerjr>
 {
-    if(mBoostLevel != level )
-    {        
+    if(mBoostLevel != level)
+    {
         mBoostLevel = level ;
         if(mBoostLevel != LLGLTexture::BOOST_NONE
            && mBoostLevel != LLGLTexture::BOOST_ICON
@@ -107,17 +110,18 @@ void LLGLTexture::setBoostLevel(S8 level)
         }
     }
 }
-
+// <FS:minerjr>
+// Changes the current boost level to the previous value
 void LLGLTexture::restoreBoostLevel()
 {
     mBoostLevel = mPrevBoostLevel;
 }
-
+// Stores the current boost level in a the previous boost.
 void LLGLTexture::storeBoostLevel()
 {
     mPrevBoostLevel = mBoostLevel;
 }
-
+// </FS:minerjr>
 void LLGLTexture::forceActive()
 {
     mTextureState = ACTIVE ;

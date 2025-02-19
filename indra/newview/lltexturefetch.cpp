@@ -1154,13 +1154,6 @@ bool LLTextureFetchWorker::doWork(S32 param)
     LLMutexLock lock(&mWorkMutex);                                      // +Mw
 
     // <FS:minerjr>
-    if (mID.asString().compare("5748decc-f629-461c-9a36-a35a221fe21f") == 0)
-    {
-        LL_INFOS("Texture") << mID << " state " << e_state_name[mState] << ": Priority: " << llformat("%8.0f",mImagePriority)
-            << " Desired Discard: " << mDesiredDiscard << " Desired Size: " << mDesiredSize << " Can Use Http: " << (mCanUseHTTP ? "True" : "False") << " NumFaces: " << LL_ENDL;
-    }
-    LL_DEBUGS("Texture") << mID << " state " << e_state_name[mState] << ": Priority: " << llformat("%8.0f",mImagePriority)
-        << " Desired Discard: " << mDesiredDiscard << " Desired Size: " << mDesiredSize << " Can Use Http: " << (mCanUseHTTP ? "True" : "False") << " NumFaces: " << LL_ENDL;
     // Added additional bounds check to exit if reached by a bad fetch request, should not get here anymore, but just in case.
     if (mDesiredDiscard < 0 || mDesiredDiscard > MAX_DISCARD_LEVEL)
     {
@@ -1447,11 +1440,6 @@ bool LLTextureFetchWorker::doWork(S32 param)
                     mCanUseCapability = true;
                     mRegionRetryAttempt = 0;
                     mLastRegionId = region->getRegionID();
-                    if (mID.asString().compare("5748decc-f629-461c-9a36-a35a221fe21f") == 0)
-                    {
-                        LL_INFOS("Texture") << mID << " state " << e_state_name[mState] << ": Priority: " << llformat("%8.0f",mImagePriority)
-                            << " Desired Discard: " << mDesiredDiscard << " Desired Size: " << mDesiredSize << " Can Use Http: " << (mCanUseHTTP ? "True" : "False") << " NumFaces: " << LL_ENDL;
-                    }
                 }
                 else
                 {
@@ -1736,11 +1724,6 @@ bool LLTextureFetchWorker::doWork(S32 param)
         if (mLoaded)
         {
             // <FS:minerjr>
-            if (mID.asString().compare("5748decc-f629-461c-9a36-a35a221fe21f") == 0)
-            {
-                LL_INFOS("Texture") << mID << " state " << e_state_name[mState] << ": Priority: " << llformat("%8.0f",mImagePriority)
-                    << " Desired Discard: " << mDesiredDiscard << " Desired Size: " << mDesiredSize << " Can Use Http: " << (mCanUseHTTP ? "True" : "False") << " NumFaces: " << LL_ENDL;
-            }
             S32 cur_size = mFormattedImage.notNull() ? mFormattedImage->getDataSize() : 0;
             if (mRequestedSize < 0)
             {
@@ -2190,11 +2173,6 @@ void LLTextureFetchWorker::onCompleted(LLCore::HttpHandle handle, LLCore::HttpRe
     static LLCachedControl<bool> log_texture_traffic(gSavedSettings, "LogTextureNetworkTraffic", false) ;
 
     LLMutexLock lock(&mWorkMutex);                                      // +Mw
-    if (mID.asString().compare("5748decc-f629-461c-9a36-a35a221fe21f") == 0)
-    {
-        LL_INFOS("Texture") << mID << " state " << e_state_name[mState] << ": Priority: " << llformat("%8.0f",mImagePriority)
-            << " Desired Discard: " << mDesiredDiscard << " Desired Size: " << mDesiredSize << " Can Use Http: " << (mCanUseHTTP ? "True" : "False") << " NumFaces: " << LL_ENDL;
-    }
     mHttpActive = false;
 
     const LLCore::HttpHeaders::ptr_t headers = response->getHeaders();;
@@ -2492,27 +2470,7 @@ S32 LLTextureFetchWorker::callbackHttpGet(LLCore::HttpResponse* response,
                                           bool partial, bool success)
 {
     S32 data_size = 0;
-    if (mID.asString().compare("5748decc-f629-461c-9a36-a35a221fe21f") == 0)
-    {
-        LL_INFOS("Texture") << mID << " state " << e_state_name[mState] << ": Priority: " << llformat("%8.0f",mImagePriority)
-            << " Desired Discard: " << mDesiredDiscard << " Desired Size: " << mDesiredSize << " Can Use Http: " << (mCanUseHTTP ? "True" : "False") << " NumFaces: " << LL_ENDL;
-    }
-    LL_INFOS() << "Partial Download: " << response->getContentType() << LL_ENDL;
-    const LLCore::HttpHeaders::ptr_t headers = response->getHeaders();;
-    if (headers)
-    {
-        for (LLCore::HttpHeaders::const_iterator it(response->getHeaders()->begin()); response->getHeaders()->end() != it; ++it)
-        {
-            static const char sep[] = ": ";
-            std::string header;
-            header.reserve((*it).first.size() + (*it).second.size() + sizeof(sep));
-            header.append((*it).first);
-            header.append(sep);
-            header.append((*it).second);
 
-            LL_INFOS() << "Header: " << header << LL_ENDL;
-        }
-    }
     if (mState != WAIT_HTTP_REQ)
     {
         LL_WARNS(LOG_TXT) << "callbackHttpGet for unrequested fetch worker: " << mID

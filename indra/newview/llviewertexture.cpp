@@ -1903,10 +1903,6 @@ void LLViewerFetchedTexture::setBoostLevel(S8 level)
 bool LLViewerFetchedTexture::processFetchResults(S32& desired_discard, S32 current_discard, S32 fetch_discard, F32 decode_priority)
 {
     // We may have data ready regardless of whether or not we are finished (e.g. waiting on write)
-    if (getID().asString().compare("5748decc-f629-461c-9a36-a35a221fe21f") == 0)
-    {
-        printf("Hi");
-    }
     if (mRawImage.notNull())
     {
         LL_PROFILE_ZONE_NAMED_CATEGORY_TEXTURE("vftuf - has raw image");
@@ -2056,10 +2052,7 @@ bool LLViewerFetchedTexture::updateFetch()
     {
         return false;
     }
-    if (getID().asString().compare("5748decc-f629-461c-9a36-a35a221fe21f") == 0)
-    {
-        LL_INFOS() << " Out test texture" << LL_ENDL;
-    }
+
     mFetchState = 0;
     mFetchPriority = 0;
     mFetchDeltaTime = 999999.f;
@@ -3077,10 +3070,6 @@ bool LLViewerLODTexture::isUpdateFrozen()
 //virtual
 void LLViewerLODTexture::processTextureStats()
 {
-    if (getID().asString().compare("5748decc-f629-461c-9a36-a35a221fe21f") == 0)
-    {
-        LL_INFOS() << " Out test texture" << LL_ENDL;
-    }
     LL_PROFILE_ZONE_SCOPED_CATEGORY_TEXTURE;
     updateVirtualSize();
 
