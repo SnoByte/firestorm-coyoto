@@ -595,7 +595,7 @@ bool LLTextureCacheRemoteWorker::doWrite()
                 else if (result == 1)
                 {
                     mDataSize = -1; // failed
-                    done = false;
+                    done = true;
                     //mCache->updateEntry(idx, entry, mImageSize, 0); // Zero out the data as we did not store any data for it.
                 }
                 // <FS:minerjr>
@@ -2165,6 +2165,17 @@ S32 LLTextureCache::writeToFastCache(LLUUID image_id, S32 id, LLPointer<LLImageR
         // Invalid texture to try to save to fast cache, but could be saved to normal cach
         LL_WARNS() << "Attempted to write Invalid raw image to fastcache" << LL_ENDL;
         //return false;
+        //copy data
+        S32 invalid_discard = MAX_DISCARD_LEVEL + 1;
+        if (i)
+        {
+            w >>= i;
+            h >>= i;
+        }
+        memcpy(mFastCachePadBuffer, &w, sizeof(S32));
+        memcpy(mFastCachePadBuffer + sizeof(S32), &h, sizeof(S32));
+        memcpy(mFastCachePadBuffer + sizeof(S32) * 2, &c, sizeof(S32));
+        memcpy(mFastCachePadBuffer + sizeof(S32) * 3, &invalid_discard, sizeof(S32));
         return 1;
     }
     // </FS:minerjr>
