@@ -645,7 +645,7 @@ bool LLImageGL::setSize(S32 width, S32 height, S32 ncomponents, S32 discard_leve
                 {
                     mMaxDiscardLevel = MAX_DISCARD_LEVEL; // This may not be needed as we may want openGL to scale down to nothing...
                 }
-                // <.FS:minerjr>                
+                // </FS:minerjr>                
             }
         }
         else

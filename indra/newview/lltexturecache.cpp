@@ -2092,8 +2092,7 @@ LLPointer<LLImageRaw> LLTextureCache::readFromFastCache(const LLUUID& id, S32& d
         {
             closeFastCache();
             return NULL;
-        }       
-
+        }
         discardlevel = head[3];
 
         data = (U8*)ll_aligned_malloc_16(image_size);
@@ -2121,6 +2120,7 @@ S32 LLTextureCache::writeToFastCache(LLUUID image_id, S32 id, LLPointer<LLImageR
     LL_PROFILE_ZONE_SCOPED_CATEGORY_TEXTURE;
 
     LLImageDataSharedLock lock(raw);
+
     //rescale image if needed
     if (raw.isNull() || raw->isBufferInvalid() || !raw->getData())
     {
@@ -2220,6 +2220,7 @@ S32 LLTextureCache::writeToFastCache(LLUUID image_id, S32 id, LLPointer<LLImageR
 
         closeFastCache(true);
     }
+
     // <FS:minerjr>
     //return true;
     return 2;

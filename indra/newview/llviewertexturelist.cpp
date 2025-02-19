@@ -924,12 +924,10 @@ void LLViewerTextureList::updateImageDecodePriority(LLViewerFetchedTexture* imag
 
         // convert bias into a vsize scaler
         bias = (F32) llroundf(powf(4, bias - 1.f));
-        bias = 1.00f;
+
         if (imagep->isViewerMediaTexture())
         {
             imagep->setBoostLevel(LLViewerFetchedTexture::BOOST_HIGH);
-
-            
         }
         LL_PROFILE_ZONE_SCOPED_CATEGORY_TEXTURE;
         for (U32 i = 0; i < LLRender::NUM_TEXTURE_CHANNELS; ++i)
@@ -966,19 +964,22 @@ void LLViewerTextureList::updateImageDecodePriority(LLViewerFetchedTexture* imag
                     S32 te_offset = face->getTEOffset();  // offset is -1 if not inited
                     LLViewerObject* objp = face->getViewerObject();
 
+                    // <FS:minerjr>
+                    // If the texture was attached to the users HUD, also make it boost_high
                     if (objp->isHUDAttachment())
                     {
                         imagep->setBoostLevel(LLViewerFetchedTexture::BOOST_HIGH);
 
                         break;
                     }
+                    // </FS:minerjr>
                     const LLTextureEntry* te = (te_offset < 0 || te_offset >= objp->getNumTEs()) ? nullptr : objp->getTE(te_offset);
                     F32 min_scale = te ? llmin(fabsf(te->getScaleS()), fabsf(te->getScaleT())) : 1.f;
                     min_scale = llclamp(min_scale * min_scale, texture_scale_min(), texture_scale_max());
                     vsize /= min_scale;
 
                     // apply bias to offscreen faces all the time, but only to onscreen faces when bias is large
-                    if ((!face->mInFrustum || LLViewerTexture::sDesiredDiscardBias > 2.f))
+                    if (!face->mInFrustum || LLViewerTexture::sDesiredDiscardBias > 2.f)
                     {
                         vsize /= bias;
                     }
@@ -1015,6 +1016,7 @@ void LLViewerTextureList::updateImageDecodePriority(LLViewerFetchedTexture* imag
 
         imagep->addTextureStats(max_vsize);
     }
+    /*
     else
     {
         switch(imagep->getType())
@@ -1036,7 +1038,7 @@ void LLViewerTextureList::updateImageDecodePriority(LLViewerFetchedTexture* imag
                 break;
         }
     }
-
+    */
     // <FS:minerjr>
     // Extra debugging information if needed
     /*
@@ -1135,7 +1137,6 @@ F32 LLViewerTextureList::updateImagesCreateTextures(F32 max_time)
         // desired discard may change while an image is being decoded. If the texture in VRAM is sufficient
         // for the current desired discard level, skip the texture creation.  This happens more often than it probably
         // should
-
         bool redundant_load = imagep->hasGLTexture() && imagep->getDiscardLevel() <= imagep->getDesiredDiscardLevel();
 
         if (!redundant_load)
@@ -1295,7 +1296,11 @@ F32 LLViewerTextureList::updateImagesFetchTextures(F32 max_time)
 
     //update MIN_UPDATE_COUNT or 5% of other textures, whichever is greater
     update_count = llmax((U32) MIN_UPDATE_COUNT, (U32) mUUIDMap.size()/20);
+    // <FS:minerjr>
+    //if (LLViewerTexture::sDesiredDiscardBias > 1.f)
+    // Prevent the steady state of the high discard from keep using a high number of textures to process
     if (LLViewerTexture::sDesiredDiscardBias > 1.f && LLViewerTexture::sDesiredDiscardBias > LLViewerTexture::sPrevDesiredDiscardBias)
+    // </FS:minerjr>
     {
         // we are over memory target, update more agresively
         update_count = (S32)(update_count * LLViewerTexture::sDesiredDiscardBias);

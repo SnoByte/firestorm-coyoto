@@ -1149,8 +1149,6 @@ bool LLTextureFetchWorker::doWork(S32 param)
     static const LLCore::HttpStatus http_not_found(HTTP_NOT_FOUND);                     // 404
     static const LLCore::HttpStatus http_service_unavail(HTTP_SERVICE_UNAVAILABLE);     // 503
     static const LLCore::HttpStatus http_not_sat(HTTP_REQUESTED_RANGE_NOT_SATISFIABLE); // 416;
-    static const LLCore::HttpStatus http_partial_content(HTTP_PARTIAL_CONTENT);
-
     LLMutexLock lock(&mWorkMutex);                                      // +Mw
 
     // <FS:minerjr>
@@ -1531,6 +1529,7 @@ bool LLTextureFetchWorker::doWork(S32 param)
                 LL_WARNS(LOG_TXT) << mID << " processSimulatorPackets() failed to load buffer" << LL_ENDL;
                 return true; // failed
             }
+
             // <FS:minerjr>
             // Extend the warning to also above the max discard evel.
             if (mLoadedDiscard < 0 || mLoadedDiscard > MAX_DISCARD_LEVEL)
@@ -1836,10 +1835,6 @@ bool LLTextureFetchWorker::doWork(S32 param)
                 releaseHttpSemaphore();
                 LL_WARNS(LOG_TXT) << mID << " abort: fail harder" << LL_ENDL;
                 return true; // failed
-            }
-            else if (http_partial_content == mGetStatus)
-            {
-
             }
 
             // Clear the url since we're done with the fetch

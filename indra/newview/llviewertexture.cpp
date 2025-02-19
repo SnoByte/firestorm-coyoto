@@ -541,6 +541,7 @@ void LLViewerTexture::updateClass()
 
     static bool was_low = false;
     static bool was_sys_low = false;
+
     // <FS:minerjr>
     // Store the previous desired discard bias to control the bias recovery
     sPrevDesiredDiscardBias = sDesiredDiscardBias;

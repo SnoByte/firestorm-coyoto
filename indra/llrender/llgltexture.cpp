@@ -113,6 +113,7 @@ void LLGLTexture::setBoostLevel(S8 level)
         }
     }
 }
+
 // <FS:minerjr>
 // Changes the current boost level to the previous value
 void LLGLTexture::restoreBoostLevel()
