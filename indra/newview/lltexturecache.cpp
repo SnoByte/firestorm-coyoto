@@ -2163,7 +2163,7 @@ S32 LLTextureCache::writeToFastCache(LLUUID image_id, S32 id, LLPointer<LLImageR
     if (discardlevel + i > MAX_DISCARD_LEVEL)
     {
         // Invalid texture to try to save to fast cache, but could be saved to normal cach
-        LL_ERRS() << "Attempted to write Invalid raw image to fastcache" << LL_ENDL;
+        LL_WARNS() << "Attempted to write Invalid raw image to fastcache" << LL_ENDL;
         //return false;
         return 1;
     }
