@@ -594,8 +594,8 @@ bool LLTextureCacheRemoteWorker::doWrite()
                 // Added as the texture is still valid, just won't fit in the fast cache (Which could allow textures to go beyond the max discard level)
                 else if (result == 1)
                 {
-                    //mDataSize = -1; // failed
-                    //done = false;
+                    mDataSize = -1; // failed
+                    done = false;
                     //mCache->updateEntry(idx, entry, mImageSize, 0); // Zero out the data as we did not store any data for it.
                 }
                 // <FS:minerjr>
