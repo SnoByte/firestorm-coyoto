@@ -579,21 +579,26 @@ bool LLTextureCacheRemoteWorker::doWrite()
                 // mRawImage is not entirely safe here since it is a pointer to one owned by cache worker,
                 // it could have been retrieved via getRequestFinished() and then modified.
                 // If writeToFastCache crashes, something is wrong around fetch worker.
+                // <FS:minerjr>
+                //if(!mCache->writeToFastCache(mID, idx, mRawImage, mRawDiscardLevel))
+                // Modified the writeToFastCache to return negative values (-1, -2, -3) on error, 1 on texture OK, just won't fit and 2 was able to write to fast cache.
                 S32 result = mCache->writeToFastCache(mID, idx, mRawImage, mRawDiscardLevel);
                 if(result < 0)
+                // <FS:minerjr>
                 {
                     LL_WARNS() << "writeToFastCache failed" << LL_ENDL;
                     mDataSize = -1; // failed
                     done = true;
                 }
+                // <FS:minerjr>
+                // Added as the texture is still valid, just won't fit in the fast cache (Which could allow textures to go beyond the max discard level)
                 else if (result == 1)
                 {
-                    mDataSize = -1; // failed
-                    done = true;
-                    mCache->updateEntry(idx, entry, mImageSize, 0); // update the existing entry.
-                    
-
+                    //mDataSize = -1; // failed
+                    //done = false;
+                    //mCache->updateEntry(idx, entry, mImageSize, 0); // Zero out the data as we did not store any data for it.
                 }
+                // <FS:minerjr>
             }
         }
         else
@@ -612,7 +617,7 @@ bool LLTextureCacheRemoteWorker::doWrite()
             }
             else
             {
-                if (alreadyCached && (mDataSize <= TEXTURE_CACHE_ENTRY_SIZE) && mDataSize != -1)
+                if (alreadyCached && (mDataSize <= TEXTURE_CACHE_ENTRY_SIZE))
                 {
                     // Small texture already cached case: we're done with writing
                     done = true;
@@ -1963,7 +1968,6 @@ LLTextureCache::handle_t LLTextureCache::readFromCache(const LLUUID& id,
                                                        S32 offset, S32 size, ReadResponder* responder)
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_TEXTURE;
-
     // Note: checking to see if an entry exists can cause a stall,
     //  so let the thread handle it
     LLMutexLock lock(&mWorkersMutex);
@@ -2012,6 +2016,7 @@ LLTextureCache::handle_t LLTextureCache::writeToCache(const LLUUID& id,
                                                       WriteResponder* responder)
 {
     // <FS:minerjr>
+    //if (mReadOnly)
     // Added bounds check for the MAX_DISCARD_LEVEL
     if (mReadOnly || discardlevel > MAX_DISCARD_LEVEL || discardlevel < 0)
     // </FS:minerjr>
@@ -2080,20 +2085,14 @@ LLPointer<LLImageRaw> LLTextureCache::readFromFastCache(const LLUUID& id, S32& d
         S32 image_size = head[0] * head[1] * head[2];
         if(image_size <= 0
            || image_size > TEXTURE_FAST_CACHE_DATA_SIZE
-           || head[3] < 0) //invalid
+            // <FS:minerjr>
+            // Check if the discard level is valid, if not, exit
+           || head[3] < 0 || head[3] > MAX_DISCARD_LEVEL) //invalid
+            // <FS:minerjr>
         {
             closeFastCache();
             return NULL;
-        }
-
-        // <FS:minerjr>
-        // Check if the discard level is valid, if not, exit
-        if (head[3] < 0 || head[3] > MAX_DISCARD_LEVEL)
-        {
-            closeFastCache();
-            return NULL;
-        }
-        // <FS:minerjr>
+        }       
 
         discardlevel = head[3];
 

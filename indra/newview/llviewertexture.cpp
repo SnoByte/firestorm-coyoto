@@ -713,7 +713,11 @@ void LLViewerTexture::init(bool firstinit)
     mMaxVirtualSizeResetInterval = 1;
     mMaxVirtualSizeResetCounter = mMaxVirtualSizeResetInterval;
     mParcelMedia = NULL;
+
+    // <FS:minerjr>
+    // Added default value fro the boost as it seemed that there were some instances boost was not being initalized.
     mBoostLevel = LLGLTexture::BOOST_NONE;
+    // <FS:minerjr>
     memset(&mNumVolumes, 0, sizeof(U32)* LLRender::NUM_VOLUME_TEXTURE_CHANNELS);
     mVolumeList[LLRender::LIGHT_TEX].clear();
     mVolumeList[LLRender::SCULPT_TEX].clear();
@@ -759,7 +763,11 @@ void LLViewerTexture::dump()
             << LL_ENDL;
 }
 
+// <FS:minerjr>
+//void LLViewerTexture::setBoostLevel(S32 level)
+// Reduced the amount of data used for storing the boost level
 void LLViewerTexture::setBoostLevel(S8 level)
+// <FS:minejr>
 {
     if(mBoostLevel != level)
     {
@@ -1868,7 +1876,10 @@ S32 LLViewerFetchedTexture::getCurrentDiscardLevelForFetching()
     S32 current_discard = getDiscardLevel();
     if(mForceToSaveRawImage)
     {
+        // <FS:minerjr>
+        //if(mSavedRawDiscardLevel < 0 || current_discard < 0)
         if(mSavedRawDiscardLevel < 0 || current_discard < 0 || current_discard > MAX_DISCARD_LEVEL || mSavedRawDiscardLevel > MAX_DISCARD_LEVEL)
+        // </FS:minerjr>
         {
             current_discard = -1;
         }
@@ -2134,7 +2145,7 @@ bool LLViewerFetchedTexture::updateFetch()
 
         if (mIsFetching)
         {
-            static const F32 MAX_HOLD_TIME = 20.0f; //seconds to wait before canceling fecthing if decode_priority is 0.f.
+            static const F32 MAX_HOLD_TIME = 5.0f; //seconds to wait before canceling fecthing if decode_priority is 0.f.
             if(decode_priority > 0.0f || mStopFetchingTimer.getElapsedTimeF32() > MAX_HOLD_TIME)
             {
                 mStopFetchingTimer.reset();
@@ -2252,10 +2263,6 @@ bool LLViewerFetchedTexture::updateFetch()
                 if (mAuxRawImage.notNull()) sAuxCount--;
                 decoded_discard = LLAppViewer::getTextureFetch()->getLastRawImage(getID(), mRawImage, mAuxRawImage);
 
-                if (decoded_discard < desired_discard)
-                {
-                   // mrawimage->
-                }
                 if (mRawImage.notNull()) sRawCount++;
                 if (mAuxRawImage.notNull())
                 {
@@ -2277,7 +2284,7 @@ bool LLViewerFetchedTexture::updateFetch()
         // Only delete requests that haven't received any network data
         // for a while.  Note - this is the normal mechanism for
         // deleting requests, not just a place to handle timeouts.
-        const F32 FETCH_IDLE_TIME = 3.0f;
+        const F32 FETCH_IDLE_TIME = 0.1f;
         if (mLastPacketTimer.getElapsedTimeF32() > FETCH_IDLE_TIME)
         {
             LL_DEBUGS("Texture") << "exceeded idle time " << FETCH_IDLE_TIME << ", deleting request: " << getID() << LL_ENDL;
@@ -2853,7 +2860,10 @@ void LLViewerFetchedTexture::destroyRawImage()
 void LLViewerFetchedTexture::saveRawImage()
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_TEXTURE;
+    // <FS:minerjr>
+    //if(mRawImage.isNull() || mRawImage == mSavedRawImage || (mSavedRawDiscardLevel >= 0 && mSavedRawDiscardLevel <= mRawDiscardLevel))
     if(mRawImage.isNull() || mRawImage == mSavedRawImage || (mSavedRawDiscardLevel >= 0 && mSavedRawDiscardLevel <= mRawDiscardLevel && mSavedRawDiscardLevel <= MAX_DISCARD_LEVEL))
+    // </FS:minerjr>
     {
         return;
     }
@@ -3052,7 +3062,10 @@ void LLViewerLODTexture::init(bool firstinit)
     mTexelsPerImage = 64*64;
     mDiscardVirtualSize = 0.f;
     mCalculatedDiscardLevel = -1.f;
+    // <FS:minerjr>
+    // Added default value fro the boost as it seemed that there were some instances boost was not being initalized.
     mBoostLevel = LLGLTexture::BOOST_NONE;
+    // <FS:minerjr>
 }
 
 //virtual
@@ -3152,6 +3165,7 @@ void LLViewerLODTexture::processTextureStats()
         mDesiredDiscardLevel = llmin(getMaxDiscardLevel() + 1, (S32)discard_level);
         // Clamp to min desired discard
         mDesiredDiscardLevel = llmin(mMinDesiredDiscardLevel, mDesiredDiscardLevel);
+
         // <FS:minerjr>
         // Never go above the max discard level (The code above says not to go over the
         // max, but adds 1 to it...This code makes sure it never goes over the MAX_DISCARD_LEVEL

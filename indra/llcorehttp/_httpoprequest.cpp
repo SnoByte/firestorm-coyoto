@@ -955,7 +955,7 @@ size_t HttpOpRequest::headerCallback(void * data, size_t size, size_t nmemb, voi
         // Doesn't look well-formed, do minimal normalization on it
         name = os_strltrim(name);
     }
-    
+
     // Normalized, now reject headers with empty names.
     if (! *name)
     {
@@ -999,7 +999,6 @@ size_t HttpOpRequest::headerCallback(void * data, size_t size, size_t nmemb, voi
             op->mReplyOffset = first;
             op->mReplyLength = last - first + 1;
             op->mReplyFullLength = length;
-
         }
         else if (-1 == status)
         {
@@ -1013,10 +1012,6 @@ size_t HttpOpRequest::headerCallback(void * data, size_t size, size_t nmemb, voi
                                     << std::string(hdr_data, wanted_hdr_size)
                                     << "'.  Ignoring."
                                     << LL_ENDL;
-            LL_WARNS() <<  "Problem parsing odd Content-Range header:  '"
-                << std::string(hdr_data, wanted_hdr_size)
-                << "'.  Ignoring."
-                << LL_ENDL;
         }
     }
 

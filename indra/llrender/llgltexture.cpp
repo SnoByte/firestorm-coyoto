@@ -63,7 +63,10 @@ LLGLTexture::~LLGLTexture()
 void LLGLTexture::init()
 {
     mBoostLevel = LLGLTexture::BOOST_NONE;
+    // <FS:minerjr>
+    // Added a previous boost level to allow for restorign boost after BOOST_SELECTED is applied
     mPrevBoostLevel = LLGLTexture::BOOST_NONE;
+    // </FS:minerjr>
 
     mFullWidth = 0;
     mFullHeight = 0;

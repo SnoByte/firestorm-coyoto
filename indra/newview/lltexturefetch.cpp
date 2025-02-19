@@ -1085,7 +1085,7 @@ void LLTextureFetchWorker::setDesiredDiscard(S32 discard, S32 size)
                 addWork(0);
             }
         }
-        else if (mDesiredDiscard < discard && mDesiredDiscard >= 0)
+        else if (mDesiredDiscard < discard)
         {
             prioritize = true;
         }
@@ -1357,12 +1357,16 @@ bool LLTextureFetchWorker::doWork(S32 param)
             // <FS:minerjr>
             //if (mLoadedDiscard < 0)
             // Added additional bounds check for MAX_DISCARD_LEVEL
+            // <FS:minerjr>
+            // Extend the warning to also above the max discard evel.
             if (mLoadedDiscard < 0 || mLoadedDiscard > MAX_DISCARD_LEVEL)
             {
                 LL_WARNS(LOG_TXT) << mID << " mLoadedDiscard is " << mLoadedDiscard
-                                  << ", should be >=0 && <= MAX_DISCARD_LEVEL" << LL_ENDL; // This should do something else like exit or try to load the URL instead.
-			    //setState(DONE);
-                //return true;
+                                  << ", should be >=0" << LL_ENDL;
+                // <FS:minerjr>
+				//setState(DONE);
+                //return true; // invalid discard
+                // </FS:minerjr>
             }
             // </FS:minerjr>
             setState(DECODE_IMAGE);
@@ -1527,7 +1531,8 @@ bool LLTextureFetchWorker::doWork(S32 param)
                 LL_WARNS(LOG_TXT) << mID << " processSimulatorPackets() failed to load buffer" << LL_ENDL;
                 return true; // failed
             }
-
+            // <FS:minerjr>
+            // Extend the warning to also above the max discard evel.
             if (mLoadedDiscard < 0 || mLoadedDiscard > MAX_DISCARD_LEVEL)
             {
                 LL_WARNS(LOG_TXT) << mID << " mLoadedDiscard is " << mLoadedDiscard
@@ -1538,6 +1543,7 @@ bool LLTextureFetchWorker::doWork(S32 param)
                 //return true; // failed
                 // </FS:minerjr>
             }
+            // </FS:minerjr>
             setState(DECODE_IMAGE);
             mWriteToCacheState = SHOULD_WRITE;
 
@@ -1934,6 +1940,8 @@ bool LLTextureFetchWorker::doWork(S32 param)
             mHttpReplyOffset = 0;
 
             mLoadedDiscard = mRequestedDiscard;
+            // <FS:minerjr>
+            // Extend the warning to also above the max discard evel.
             if (mLoadedDiscard < 0 || mLoadedDiscard > MAX_DISCARD_LEVEL)
             {
                 LL_WARNS(LOG_TXT) << mID << " mLoadedDiscard is " << mLoadedDiscard
@@ -1943,6 +1951,7 @@ bool LLTextureFetchWorker::doWork(S32 param)
                 //return true; // invalid discard
                 // </FS:minerjr>
             }
+            // </FS:minerjr>
             setState(DECODE_IMAGE);
             if (mWriteToCacheState != NOT_WRITE)
             {
@@ -3192,7 +3201,7 @@ bool LLTextureFetch::getRequestFinished(const LLUUID& id, S32& discard_level, S3
             worker->lockWorkMutex();                                    // +Mw
             if ((worker->mDecodedDiscard >= 0 && worker->mDecodedDiscard <= MAX_DISCARD_LEVEL) &&
                 (worker->mDecodedDiscard < discard_level || discard_level < 0) &&
-                (worker->mState >= LLTextureFetchWorker::DONE))
+                (worker->mState >= LLTextureFetchWorker::WAIT_ON_WRITE))
             {
                 // Not finished, but data is ready
                 discard_level = worker->mDecodedDiscard;
@@ -3943,7 +3952,11 @@ S32 LLTextureFetch::getLastRawImage(const LLUUID& id,
     LL_PROFILE_ZONE_SCOPED;
     S32 decoded_discard = -1;
     LLTextureFetchWorker* worker = getWorker(id);
+    // <FS:minerjr>
+    //if (worker && !worker->haveWork() && worker->mDecodedDiscard >= 0)
+    // Added check for to make sure the decoded discard is valid
     if (worker && !worker->haveWork() && worker->mDecodedDiscard >= 0 && worker->mDecodedDiscard <= MAX_DISCARD_LEVEL)
+    // </FS:minerjr>
     {
             worker->lockWorkMutex();                                    // +Mw
             raw = worker->mRawImage;

@@ -98,6 +98,7 @@ public:
     virtual void dump();    // debug info to LL_INFOS()
 
     virtual const LLUUID& getID() const;
+
     // <FS:minerjr>    
     //void setBoostLevel(S32 level);
     //S32 getBoostLevel() { return mBoostLevel; }
@@ -188,8 +189,9 @@ public:
 
 protected:
     // <FS:minerjr>
-    // Modified to store
     //S32 mBoostLevel;                // enum describing priority level
+    // Modified to store the previous boost level, as well, boost only go up to 30, so a 32 bit int is a waste and the extra bits
+    // can be used to store a previous value to allow for restoring the boost value after the BOOST_SELECTED is undone.
     S8 mBoostLevel;                // enum describing priority level
     S8 mPrevBoostLevel;            // enum describing priority level (Previous Value for BOOST_SELECTION restore)
     // </FS:minerjr>
