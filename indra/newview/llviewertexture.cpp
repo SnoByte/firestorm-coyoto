@@ -1317,6 +1317,7 @@ void LLViewerFetchedTexture::loadFromFastCache()
     else
     {
         record(LLTextureFetch::sCacheHitRate, LLUnits::Ratio::fromValue(0));
+        mInFastCacheList = false;
     }
 }
 
