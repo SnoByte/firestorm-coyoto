@@ -4080,7 +4080,7 @@ void LLMeshRepository::notifyLoadedMeshes()
             }
 
             // erase from background thread
-            mThread->mWorkQueue.post([=, this]()
+            mThread->mWorkQueue.post([=]()
                 {
                     mThread->mSkinMap.erase(id);
                 });
