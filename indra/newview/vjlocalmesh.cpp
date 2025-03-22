@@ -25,6 +25,7 @@
  */
 
 // linden headers
+#include "linden_common.h"
 #include "llviewerprecompiledheaders.h"
 #include "llcallbacklist.h"
 #include "llviewerobjectlist.h"
@@ -39,14 +40,22 @@
 #include <chrono>
 // boost headers
 #include "fix_macros.h"
-#include <boost/filesystem.hpp>
+#include "llcommonutils.h"
+
+#ifdef WITH_BOOST_FS
+   #include "boost/filesystem.hpp"
+   namespace fs  = boost::filesystem;
+#else
+   #include <filesystem>
+   namespace fs  = std::filesystem;
+#endif
 
 // local mesh headers
 #include "vjlocalmesh.h"
 #include "vjfloaterlocalmesh.h"
 
 // local mesh importers
-#include "vjlocalmeshimportdae.h"
+//#include "vjlocalmeshimportdae.h" //deprecate Collada/Dae files, it's 2025 and blender will remove support soon.
 
 
 /*==========================================*/
@@ -448,13 +457,13 @@ LLLocalMeshFile::LLLocalMeshFile(const std::string& filename, bool try_lods)
     mLoadedObjectList.clear();
     mSavedObjectSculptIDs.clear();
 
-    mShortName = std::string(boost::filesystem::path(filename).stem().string());
+    mShortName = std::string(fs::path(filename).stem().string());
     std::string stripSuffix(std::string);
     auto base_lod_filename {stripSuffix(mShortName)};
     pushLog("LLLocalMeshFile", "Initializing with base filename: " + base_lod_filename);
 
     // check if main filename exists, just in case
-    if (!boost::filesystem::exists(filename))
+    if (!fs::exists(filename))
     {
         // filename provided doesn't exist, just stop.
         mLocalMeshFileStatus = LLLocalMeshFileStatus::STATUS_ERROR;
@@ -466,7 +475,7 @@ LLLocalMeshFile::LLLocalMeshFile(const std::string& filename, bool try_lods)
     mFilenames[LOCAL_LOD_HIGH] = filename;
 
     // check if we have a valid extension, can't switch with string can we?
-    auto path = boost::filesystem::path(filename);
+    auto path = fs::path(filename);
     if (std::string exten_str = path.extension().string();
     boost::iequals(exten_str, ".dae") )
     {
@@ -523,7 +532,7 @@ void LLLocalMeshFile::reloadLocalMeshObjects(bool initial_load)
 
     // another recheck that mFilenames[3] main file is present,
     // in case the file got deleted and the user hits reload - it'll error out here.
-    if (!boost::filesystem::exists(mFilenames[LOCAL_LOD_HIGH]))
+    if (!fs::exists(mFilenames[LOCAL_LOD_HIGH]))
     {
         // filename provided doesn't exist, just stop.
         mLocalMeshFileStatus = LLLocalMeshFileStatus::STATUS_ERROR;
@@ -541,13 +550,13 @@ void LLLocalMeshFile::reloadLocalMeshObjects(bool initial_load)
             // lod filenames may be empty because this is first time through or because the lod didn't exist before.
             if( mFilenames[lodfile_iter].empty() )
             {
-                auto filepath { boost::filesystem::path(mFilenames[LOCAL_LOD_HIGH]).parent_path() };
+                auto filepath { fs::path(mFilenames[LOCAL_LOD_HIGH]).parent_path() };
                 std::string getLodSuffix(S32);
                 auto lod_suffix { getLodSuffix(lodfile_iter) };
-                auto extension { boost::filesystem::path(mFilenames[LOCAL_LOD_HIGH]).extension() };
+                auto extension { fs::path(mFilenames[LOCAL_LOD_HIGH]).extension() };
 
-                boost::filesystem::path current_lod_filename = filepath / (mShortName + lod_suffix + extension.string());
-                if ( boost::filesystem::exists( current_lod_filename ) )
+                fs::path current_lod_filename = filepath / (mShortName + lod_suffix + extension.string());
+                if ( fs::exists( current_lod_filename ) )
                 {
                     pushLog("LLLocalMeshFile", "LOD filename " + current_lod_filename.string() + " found, adding.");
                     mFilenames[lodfile_iter] = current_lod_filename.string();
@@ -610,23 +619,23 @@ void LLLocalMeshFile::reloadLocalMeshObjects(bool initial_load)
             log.push_back("[ LLLocalMeshFile ] Attempting to load file for LOD " + std::to_string(lod_idx));
             switch (mExtension)
             {
-                case LLLocalMeshFileExtension::EXTEN_DAE:
+                case LLLocalMeshFileExtension::EXTEN_DAE: //deprecate Collada/Dae files, it's 2025 and blender will remove support soon.
                 {
                     // pass it over to dae loader
-                    LLLocalMeshImportDAE importer;
-                    auto importer_result = importer.loadFile(this, current_lod);
-                    lod_success[lod_idx] = importer_result.first;
+                    //LLLocalMeshImportDAE importer;
+                    //auto importer_result = importer.loadFile(this, current_lod);
+                    //lod_success[lod_idx] = importer_result.first;
 
                     // NOTE: if not success - do not indicate change as not to affect existing vobjects?
-                    if (lod_success[lod_idx])
-                    {
-                        change_happened = true;
-                    }
+                    //if (lod_success[lod_idx])
+                    //{
+                    //    change_happened = true;
+                    //}
 
-                    const auto& importer_log = importer_result.second;
-                    log.reserve(log.size() + importer_log.size());
-                    log.insert(log.end(), importer_log.begin(), importer_log.end());
-                    break;
+                    //const auto& importer_log = importer_result.second;
+                    //log.reserve(log.size() + importer_log.size());
+                    //log.insert(log.end(), importer_log.begin(), importer_log.end());
+                    break; 
                 }
 
                 default:
@@ -729,9 +738,9 @@ bool LLLocalMeshFile::updateLastModified(LLLocalMeshFileLOD lod)
     std::string current_filename = mFilenames[lod];
 
     #ifndef LL_WINDOWS
-        const std::time_t temp_time = boost::filesystem::last_write_time(boost::filesystem::path(current_filename));
+        const std::time_t temp_time = fs::last_write_time(fs::path(current_filename));
     #else
-        const std::time_t temp_time = boost::filesystem::last_write_time(boost::filesystem::path(utf8str_to_utf16str(current_filename)));
+        const std::time_t temp_time = LLCommonUtils::file_time_to_time_t(fs::last_write_time(fs::path(utf8str_to_utf16str(current_filename))));
     #endif
 
 

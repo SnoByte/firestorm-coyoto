@@ -99,8 +99,8 @@ public:
 
 
 public:
-    LL_ALIGN_16(LLVector4a mBounds[2]); // bounding box (center, size) of this node and all its children (tight fit to objects)
-    LL_ALIGN_16(LLVector4a mExtents[2]); // extents (min, max) of this node and all its children
+    __declspec(align(16)) LLVector4a mBounds[2]; // bounding box (center, size) of this node and all its children (tight fit to objects)
+    __declspec(align(16)) LLVector4a mExtents[2]; // extents (min, max) of this node and all its children
 };
 
 class LLOctreeTriangleRayIntersect : public LLOctreeTraveler<LLVolumeTriangle, LLVolumeTriangle*>

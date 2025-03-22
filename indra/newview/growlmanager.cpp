@@ -69,7 +69,7 @@ GrowlManager::GrowlManager()
     mChatMessageConnection()
 {
     // Create a notifier appropriate to the platform.
-#ifndef LL_LINUX
+#if !defined(LL_WINDOWS) && !defined(_M_ARM64)
     mNotifier = new GrowlNotifierWin();
     LL_INFOS("GrowlManagerInit") << "Created GrowlNotifierWin." << LL_ENDL;
 #elif LL_LINUX

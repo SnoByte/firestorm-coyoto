@@ -327,7 +327,7 @@ class LLVBOPool
     public:
     virtual ~LLVBOPool() = default;
     virtual void allocate(GLenum type, U32 size, GLuint& name, U8*& data) = 0;
-    virtual void free(GLenum type, U32 size, GLuint name, U8* data) = 0;
+    virtual void freeVBO(GLenum type, U32 size, GLuint name, U8* data) = 0;
     virtual U64 getVramBytesUsed() = 0;
 };
 
@@ -363,7 +363,7 @@ public:
         }
     }
 
-    void free(GLenum type, U32 size, GLuint name, U8* data) override
+    void freeVBO(GLenum type, U32 size, GLuint name, U8* data) override
     {
         LL_PROFILE_ZONE_SCOPED_CATEGORY_VERTEX;
         llassert(type == GL_ARRAY_BUFFER || type == GL_ELEMENT_ARRAY_BUFFER);
@@ -486,7 +486,7 @@ public:
         clean();
     }
 
-    void free(GLenum type, U32 size, GLuint name, U8* data) override
+    void freeVBO(GLenum type, U32 size, GLuint name, U8* data) override
     {
         LL_PROFILE_ZONE_SCOPED_CATEGORY_VERTEX;
         llassert(type == GL_ARRAY_BUFFER || type == GL_ELEMENT_ARRAY_BUFFER);
@@ -1197,7 +1197,7 @@ void LLVertexBuffer::destroyGLBuffer()
         //llassert(sVBOPool);
         if (sVBOPool)
         {
-            sVBOPool->free(GL_ARRAY_BUFFER, mSize, mGLBuffer, mMappedData);
+            sVBOPool->freeVBO(GL_ARRAY_BUFFER, mSize, mGLBuffer, mMappedData);
         }
 
         mSize = 0;
@@ -1214,7 +1214,7 @@ void LLVertexBuffer::destroyGLIndices()
         //llassert(sVBOPool);
         if (sVBOPool)
         {
-            sVBOPool->free(GL_ELEMENT_ARRAY_BUFFER, mIndicesSize, mGLIndices, mMappedIndexData);
+            sVBOPool->freeVBO(GL_ELEMENT_ARRAY_BUFFER, mIndicesSize, mGLIndices, mMappedIndexData);
         }
 
         mIndicesSize = 0;
@@ -1580,7 +1580,8 @@ template <class T,LLVertexBuffer::AttributeType type> struct VertexBufferStrider
         }
         else if (vbo.hasDataType(type))
         {
-            U32 stride = LLVertexBuffer::sTypeSize[type];
+            //U32 stride = LLVertexBuffer::sTypeSize[type];
+            U32 stride = (type < LLVertexBuffer::TYPE_MAX) ? LLVertexBuffer::sTypeSize[type] : 0;
 
             U8* ptr = vbo.mapVertexBuffer(type, index, count);
 

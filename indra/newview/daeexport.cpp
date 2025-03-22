@@ -735,6 +735,7 @@ bool DAESaver::saveDAE(std::string filename)
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
         "abcdefghijklmnopqrstuvwxyz"
         "0123456789"
+
         "%-._~:\"|\\/";
     std::string uri_filename = LLURI::escape(filename, allowed);
 

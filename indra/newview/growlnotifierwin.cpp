@@ -32,7 +32,7 @@
 * THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-
+#if !defined(LL_WINDOWS) && !defined(_M_ARM64)
 #include "llviewerprecompiledheaders.h"
 #include "growlnotifierwin.h"
 
@@ -107,3 +107,4 @@ bool GrowlNotifierWin::isUsable()
 {
     return (mGrowlImpl && mGrowlImpl->isConnected());
 }
+#endif

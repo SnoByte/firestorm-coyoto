@@ -39,8 +39,7 @@
 #include <stdint.h>
 #endif
 
-#include <xmmintrin.h>
-#include <emmintrin.h>
+#include <sse2neon.h>
 
 #include "llmemory.h"
 #include "llsimdtypes.h"

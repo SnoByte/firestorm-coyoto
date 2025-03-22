@@ -110,7 +110,7 @@
 #include "llview.h"
 #include <boost/array.hpp>
 #include <boost/bind.hpp>
-#include <boost/filesystem.hpp>
+//#include <boost/filesystem.hpp>
 #include <boost/foreach.hpp>
 #include <boost/function.hpp>
 #include <boost/lexical_cast.hpp>

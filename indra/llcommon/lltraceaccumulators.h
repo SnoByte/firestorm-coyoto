@@ -62,7 +62,7 @@ namespace LLTrace
 
     public:
         AccumulatorBuffer()
-            : mStorageSize(0),
+        :    mStorageSize(0),
             mStorage(NULL)
         {
             LL_PROFILE_ZONE_SCOPED_CATEGORY_STATS;
@@ -240,8 +240,9 @@ namespace LLTrace
         static self_t*  sDefaultBuffer;
     };
 
-    template<typename ACCUMULATOR> size_t AccumulatorBuffer<ACCUMULATOR>::sNextStorageSlot = 0;
-    template<typename ACCUMULATOR> AccumulatorBuffer<ACCUMULATOR>* AccumulatorBuffer<ACCUMULATOR>::sDefaultBuffer = NULL;
+template<typename ACCUMULATOR> size_t AccumulatorBuffer<ACCUMULATOR>::sNextStorageSlot = 0;  
+template<typename ACCUMULATOR> AccumulatorBuffer<ACCUMULATOR>* AccumulatorBuffer<ACCUMULATOR>::sDefaultBuffer = NULL;
+
 
     class EventAccumulator
     {

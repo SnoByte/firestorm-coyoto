@@ -8082,7 +8082,7 @@ bool LLPipeline::renderSnapshotFrame(LLRenderTarget* src, LLRenderTarget* dst)
     {
         float frame_width = w;
         float frame_height = frame_width / snapshot_aspect;
-        // Centre this box in [0..1]×[0..1]
+        // Centre this box in [0..1]Ã—[0..1]
         float y_offset = 0.5f * (h - frame_height);
         left   = 0.f;
         top    = y_offset / h;
@@ -8093,7 +8093,7 @@ bool LLPipeline::renderSnapshotFrame(LLRenderTarget* src, LLRenderTarget* dst)
     {
         float frame_height = h;
         float frame_width = h * snapshot_aspect;
-        // Centre this box in [0..1]×[0..1]
+        // Centre this box in [0..1]Ã—[0..1]
         float x_offset = 0.5f * (w - frame_width);
         left   = x_offset / w;
         top    = 0.f;

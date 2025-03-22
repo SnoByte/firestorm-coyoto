@@ -83,7 +83,7 @@
  *   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  **********************************************************************/
-#if LL_WINDOWS
+#if LL_WINDOWS and not defined(_M_ARM64)
 
 #include <windows.h>
 #include <tchar.h>

@@ -452,7 +452,7 @@ public:
         return false;
     }
 
-    void _remove(T* data, S32 i)
+    void _remove(T* data, U32 i)
     { //precondition -- getElementCount() > 0, idx is in range [0, getElementCount())
 
         data->setBinIndex(-1);

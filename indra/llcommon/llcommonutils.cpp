@@ -27,6 +27,7 @@
 #include "linden_common.h"
 #include "llcommonutils.h"
 
+
 void LLCommonUtils::computeDifference(
     const uuid_vec_t& vnew,
     const uuid_vec_t& vcur,
@@ -51,6 +52,13 @@ void LLCommonUtils::computeDifference(
     // what was added
     it = set_difference(vnew_copy.begin(), vnew_copy.end(), vcur_copy.begin(), vcur_copy.end(), vadded.begin());
     vadded.erase(it, vadded.end());
+}
+
+std::time_t LLCommonUtils::file_time_to_time_t(const std::filesystem::file_time_type& ftime)
+{
+    auto system_ftime = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+        ftime - std::filesystem::file_time_type::clock::now() + std::chrono::system_clock::now());
+    return std::chrono::system_clock::to_time_t(system_ftime);
 }
 
 // EOF

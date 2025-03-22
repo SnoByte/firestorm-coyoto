@@ -1025,12 +1025,12 @@ void LLKeywords::dump()
 
 void LLKeywordToken::dump()
 {
-    LL_INFOS() << "[" <<
-        mColor.mV[VRED] << ", " <<
-        mColor.mV[VGREEN] << ", " <<
-        mColor.mV[VBLUE] << "] [" <<
-        wstring_to_utf8str(mToken) << "]" <<
-        LL_ENDL;
+    //LL_INFOS() << "[" <<
+    //    mColor.mV[VRED] << ", " <<
+    //    mColor.mV[VGREEN] << ", " <<
+     //   mColor.mV[VBLUE] << "] [" <<
+    //    wstring_to_utf8str(mToken) << "]" <<
+    //    LL_ENDL;
 }
 
 #endif  // DEBUG

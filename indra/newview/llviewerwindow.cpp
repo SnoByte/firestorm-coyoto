@@ -33,7 +33,13 @@
 #include <iostream>
 #include <fstream>
 #include <algorithm>
-#include <boost/filesystem.hpp>
+#ifdef WITH_BOOST_FS
+   #include "boost/filesystem.hpp"
+   namespace fs  = boost::filesystem;
+#else
+   #include <filesystem>
+   namespace fs  = std::filesystem;
+#endif
 #include <boost/lambda/core.hpp>
 #include <boost/regex.hpp>
 
@@ -5882,11 +5888,11 @@ void LLViewerWindow::saveImageLocal(LLImageFormatted *image, const snapshot_save
 
 // Check if there is enough free space to save snapshot
 #ifdef LL_WINDOWS
-    boost::filesystem::path b_path(utf8str_to_utf16str(lastSnapshotDir));
+   fs::path b_path(utf8str_to_utf16str(lastSnapshotDir));
 #else
-    boost::filesystem::path b_path(lastSnapshotDir);
+    fs:path b_path(lastSnapshotDir);
 #endif
-    if (!boost::filesystem::is_directory(b_path))
+    if (!fs::is_directory(b_path))
     {
         LLSD args;
         args["PATH"] = lastSnapshotDir;
@@ -5895,7 +5901,7 @@ void LLViewerWindow::saveImageLocal(LLImageFormatted *image, const snapshot_save
         failure_cb();
         return;
     }
-    boost::filesystem::space_info b_space = boost::filesystem::space(b_path);
+    fs::space_info b_space = fs::space(b_path);
     if (b_space.free < image->getDataSize())
     {
         LLSD args;

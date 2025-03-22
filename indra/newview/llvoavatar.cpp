@@ -135,7 +135,7 @@
 #include "fsavatarrenderpersistence.h"
 #include "fslslbridge.h" // <FS:PP> Movelock position refresh
 
-#include "fsdiscordconnect.h" // <FS:LO> tapping a place that happens on landing in world to start up discord
+//#include "fsdiscordconnect.h" // <FS:LO> tapping a place that happens on landing in world to start up discord
 
 extern F32 SPEED_ADJUST_MAX;
 extern F32 SPEED_ADJUST_MAX_SEC;
@@ -3647,7 +3647,7 @@ void LLVOAvatar::idleUpdateLoadingEffect()
                     AOEngine::instance().onLoginComplete();
 
                     // <FS:LO> tapping a place that happens on landing in world to start up discord
-                    FSDiscordConnect::instance().checkConnectionToDiscord(gSavedPerAccountSettings.getBOOL("FSEnableDiscordIntegration"));
+                    //FSDiscordConnect::instance().checkConnectionToDiscord(gSavedPerAccountSettings.getBOOL("FSEnableDiscordIntegration"));
                 }
                 else
                 {

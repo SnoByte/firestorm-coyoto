@@ -508,6 +508,8 @@ void LLApp::sendOutOfDiskSpaceNotification()
     LL_WARNS() << "Should never be called" << LL_ENDL; // Should be overridden
 }
 
+std::mutex LLApp::sAppStatusThreadMutex;
+
 #ifndef LL_WINDOWS
 void setup_signals()
 {

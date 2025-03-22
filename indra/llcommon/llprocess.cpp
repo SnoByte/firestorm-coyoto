@@ -176,14 +176,14 @@ public:
             // In general, our streambuf might contain a number of different
             // physical buffers; iterate over those.
             bool keepwriting = true;
-            for (const_buffer_sequence::const_iterator bufi(bufs.begin()), bufend(bufs.end());
-                 bufi != bufend && keepwriting; ++bufi)
+            for (auto bufi = boost::asio::buffers_begin(bufs), bufend = boost::asio::buffers_end(bufs); bufi != bufend && keepwriting;
+                 ++bufi)
             {
                 // http://www.boost.org/doc/libs/1_49_0_beta1/doc/html/boost_asio/reference/buffer.html#boost_asio.reference.buffer.accessing_buffer_contents
                 // Although apr_file_write() accepts const void*, we
                 // manipulate const char* so we can increment the pointer.
-                const char* remainptr = boost::asio::buffer_cast<const char*>(*bufi);
-                std::size_t remainlen = boost::asio::buffer_size(*bufi);
+                const char* remainptr = reinterpret_cast<const char*>(*bufi);
+                std::size_t remainlen = boost::asio::buffer_size(boost::asio::buffer(remainptr, std::strlen(remainptr)));
                 while (remainlen)
                 {
                     // Tackle the current buffer in discrete chunks. On
@@ -377,14 +377,14 @@ public:
             // In general, the mutable_buffer_sequence returned by prepare() might
             // contain a number of different physical buffers; iterate over those.
             std::size_t tocommit(0);
-            for (mutable_buffer_sequence::const_iterator bufi(bufs.begin()), bufend(bufs.end());
-                 bufi != bufend; ++bufi)
+            for (auto bufi = boost::asio::buffers_begin(bufs), bufend = boost::asio::buffers_end(bufs); bufi != bufend;
+                 ++bufi)
             {
                 // http://www.boost.org/doc/libs/1_49_0_beta1/doc/html/boost_asio/reference/buffer.html#boost_asio.reference.buffer.accessing_buffer_contents
-                std::size_t toread(boost::asio::buffer_size(*bufi));
+                const char*  remainptr = reinterpret_cast<const char*>(*bufi);
+                std::size_t  toread(boost::asio::buffer_size(boost::asio::buffer(remainptr, std::strlen(remainptr))));
                 apr_size_t gotten(toread);
-                apr_status_t err = apr_file_read(mPipe,
-                                                 boost::asio::buffer_cast<void*>(*bufi),
+                apr_status_t err = apr_file_read(mPipe, reinterpret_cast<void*>(*bufi),
                                                  &gotten);
                 // EAGAIN is exactly what we want from a nonblocking pipe.
                 // Rather than waiting for data, it should return immediately.
@@ -567,8 +567,11 @@ LLProcess::LLProcess(const LLSDOrParams& params):
     // special pains, that causes trouble in a number of ways, due to the fact
     // that the viewer is constantly opening and closing files -- most of
     // which CreateProcess() passes to every child process!
-#if ! defined(APR_HAS_PROCATTR_CONSTRAIN_HANDLE_SET)
+#if !defined(APR_HAS_PROCATTR_CONSTRAIN_HANDLE_SET)
     // Our special preprocessor symbol isn't even defined -- wrong APR
+    LL_WARNS("LLProcess") << "This version of APR lacks Linden "
+                          << "apr_procattr_constrain_handle_set() extension" << LL_ENDL;
+#elif !APR_HAS_PROCATTR_CONSTRAIN_HANDLE_SET
     LL_WARNS("LLProcess") << "This version of APR lacks Linden "
                           << "apr_procattr_constrain_handle_set() extension" << LL_ENDL;
 #else

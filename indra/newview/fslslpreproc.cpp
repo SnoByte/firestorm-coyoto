@@ -93,24 +93,30 @@ std::map<std::string, LLUUID> FSLSLPreprocessor::cached_assetids;
 #endif
 //#define BOOST_SPIRIT_THREADSAFE
 
-#include <boost/assert.hpp>
+//#include <boost/assert.hpp>
 // <FS:Zi> GCC specific warning
 #if defined(__GNUC__) && (__GNUC__ >= 12)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfree-nonheap-object"
 #endif
 // </FS:Zi>
-#include <boost/wave.hpp>
+//#include <boost/wave.hpp>
 // <FS:Zi> GCC specific warning
 #if defined(__GNUC__) && (__GNUC__ >= 12)
 #pragma GCC diagnostic pop
 #endif
 // </FS:Zi>
-#include <boost/wave/cpplexer/cpp_lex_token.hpp>    // token class
-#include <boost/wave/cpplexer/cpp_lex_iterator.hpp> // lexer class
-#include <boost/wave/preprocessing_hooks.hpp>
-#include <boost/regex.hpp>
-#include <boost/filesystem.hpp>
+//#include <boost/wave/cpplexer/cpp_lex_token.hpp>    // token class
+//#include <boost/wave/cpplexer/cpp_lex_iterator.hpp> // lexer class
+//#include <boost/wave/preprocessing_hooks.hpp>
+
+#ifdef WITH_BOOST_FS
+   #include "boost/filesystem.hpp"
+   namespace fs  = boost::filesystem;
+#else
+   #include <filesystem>
+   namespace fs  = std::filesystem;
+#endif
 
 using namespace boost::regex_constants;
 
@@ -535,159 +541,8 @@ struct ProcCacheInfo
 
 static inline std::string shortfile(const std::string& in)
 {
-    return boost::filesystem::path(in).filename().string();
+    return fs::path(in).filename().string();
 }
-
-
-class trace_include_files : public boost::wave::context_policies::default_preprocessing_hooks
-{
-public:
-    trace_include_files(FSLSLPreprocessor* proc)
-    :   mProc(proc)
-    {
-        mAssetStack.push(LLUUID::null.asString());
-        mFileStack.push(proc->mMainScriptName);
-    }
-
-    template <typename ContextT>
-    bool found_include_directive(ContextT const& ctx, std::string const &filename, bool include_next)
-    {
-        std::string cfilename = filename.substr(1, filename.length() - 2);
-        LL_DEBUGS("FSLSLPreprocessor") << cfilename << ":found_include_directive" << LL_ENDL;
-        std::optional<LLUUID> item_id = FSLSLPreprocessor::findInventoryByName(cfilename);
-        if (item_id.has_value())
-        {
-            LLViewerInventoryItem* item = gInventory.getItem(item_id.value());
-            if (item)
-            {
-                std::map<std::string,LLUUID>::iterator it = mProc->cached_assetids.find(cfilename);
-                bool not_cached = (it == mProc->cached_assetids.end());
-                bool changed = true;
-                if (!not_cached)
-                {
-                    changed = (mProc->cached_assetids[cfilename] != item->getAssetUUID());
-                }
-                if (not_cached || changed)
-                {
-                    std::set<std::string>::iterator it = mProc->caching_files.find(cfilename);
-                    if (it == mProc->caching_files.end())
-                    {
-                        if (not_cached)
-                        {
-                            LLStringUtil::format_map_t args;
-                            args["[FILENAME]"] = cfilename;
-                            mProc->display_message(LLTrans::getString("fs_preprocessor_cache_miss", args));
-                        }
-                        else /*if(changed)*/
-                        {
-                            LLStringUtil::format_map_t args;
-                            args["[FILENAME]"] = cfilename;
-                            mProc->display_message(LLTrans::getString("fs_preprocessor_cache_invalidated", args));
-                        }
-                        //one is always true
-                        mProc->caching_files.insert(cfilename);
-                        ProcCacheInfo* info = new ProcCacheInfo;
-                        info->item = item;
-                        info->self = mProc;
-                        LLPermissions perm(((LLInventoryItem*)item)->getPermissions());
-                        gAssetStorage->getInvItemAsset(LLHost(),
-                                                        gAgentID,
-                                                        gAgentSessionID,
-                                                        perm.getOwner(),
-                                                        LLUUID::null,
-                                                        item->getUUID(),
-                                                        LLUUID::null,
-                                                        item->getType(),
-                                                        &FSLSLPreprocessor::FSProcCacheCallback,
-                                                        info,
-                                                        true);
-                        return true;
-                    }
-                }
-            }
-        }
-        else
-        {
-            //todo check on HDD in user defined dir for file in question
-        }
-        return false;
-    }
-
-    template <typename ContextT>
-    void opened_include_file(ContextT const& ctx,
-        std::string const &relname, std::string const& absname,
-        bool is_system_include)
-    {
-        ContextT& usefulctx = const_cast<ContextT&>(ctx);
-        std::string id;
-        std::string filename = shortfile(relname);
-        std::map<std::string, LLUUID>::iterator it = mProc->cached_assetids.find(filename);
-        if (it != mProc->cached_assetids.end())
-        {
-            id = mProc->cached_assetids[filename].asString();
-        }
-        else
-        {
-            id = "NOT_IN_WORLD";//I guess, still need to add external includes atm
-        }
-        mAssetStack.push(id);
-        std::string macro = "__ASSETID__";
-        usefulctx.remove_macro_definition(macro, true);
-        std::string def = llformat("%s=\"%s\"", macro.c_str(), id.c_str());
-        usefulctx.add_macro_definition(def, false);
-
-        mFileStack.push(filename);
-        macro = "__SHORTFILE__";
-        usefulctx.remove_macro_definition(macro, true);
-        def = llformat("%s=\"%s\"", macro.c_str(), filename.c_str());
-        usefulctx.add_macro_definition(def, false);
-    }
-
-
-    template <typename ContextT>
-    void returning_from_include_file(ContextT const& ctx)
-    {
-        ContextT& usefulctx = const_cast<ContextT&>(ctx);
-        if (mAssetStack.size() > 1)
-        {
-            mAssetStack.pop();
-            std::string id = mAssetStack.top();
-            std::string macro = "__ASSETID__";
-            usefulctx.remove_macro_definition(macro, true);
-            std::string def = llformat("%s=\"%s\"", macro.c_str(), id.c_str());
-            usefulctx.add_macro_definition(def, false);
-
-            mFileStack.pop();
-            std::string filename = mFileStack.top();
-            macro = "__SHORTFILE__";
-            usefulctx.remove_macro_definition(macro, true);
-            def = llformat("%s=\"%s\"", macro.c_str(), filename.c_str());
-            usefulctx.add_macro_definition(def, false);
-        }//else wave did something really wrong
-    }
-
-    template <typename ContextT, typename ExceptionT>
-    void throw_exception(ContextT const& ctx, ExceptionT const& e)
-    {
-        std::string err;
-        err = "warning: last line of file ends without a newline";
-        if (!err.compare( e.description()))
-        {
-            err = "Ignoring warning: ";
-            err += e.description();
-            LL_WARNS("FSLSLPreprocessor") << err << LL_ENDL;
-        }
-        else
-        {
-            boost::throw_exception(e);
-        }
-    }
-
-private:
-    FSLSLPreprocessor* mProc;
-    std::stack<std::string> mAssetStack;
-    std::stack<std::string> mFileStack;
-};
 
 void cache_script(std::string name, std::string content)
 {
@@ -728,7 +583,7 @@ void FSLSLPreprocessor::FSProcCacheCallback(const LLUUID& iuuid, LLAssetType::ET
             content += "\n#define __ITEMID__ __UP_ITEMID__\n";*/
             //prolly wont work and ill have to be not lazy, but worth a try
 
-            if (boost::filesystem::native(name))
+            if (native(name))
             {
                 LL_DEBUGS("FSLSLPreprocessor") << "native name of " << name << LL_ENDL;
                 LLStringUtil::format_map_t args;
@@ -1125,7 +980,7 @@ void FSLSLPreprocessor::start_process()
 
     mWaving = true;
     bool lackDefault = false;
-    boost::wave::util::file_position_type current_position;
+    //boost::wave::util::file_position_type current_position;
     std::string input;
     if (mStandalone)
     {
@@ -1289,137 +1144,6 @@ void FSLSLPreprocessor::start_process()
 
         LL_DEBUGS("FSLSLPreprocessor") << settings << LL_ENDL;
         std::string err;
-        try
-        {
-            trace_include_files tracer(this);
-            typedef boost::wave::cpplexer::lex_token<> token_type;
-            typedef boost::wave::cpplexer::lex_iterator<token_type> lex_iterator_type;
-            typedef boost::wave::context<std::string::iterator, lex_iterator_type, boost::wave::iteration_context_policies::load_file_to_string, trace_include_files >
-                    context_type;
-
-            context_type ctx(input.begin(), input.end(), name.c_str(), tracer);
-            ctx.set_language(boost::wave::enable_long_long(ctx.get_language()));
-            ctx.set_language(boost::wave::enable_prefer_pp_numbers(ctx.get_language()));
-            ctx.set_language(boost::wave::enable_variadics(ctx.get_language()));
-
-            std::string path = gDirUtilp->getExpandedFilename(LL_PATH_CACHE,"") + gDirUtilp->getDirDelimiter() + "lslpreproc" + gDirUtilp->getDirDelimiter();
-            ctx.add_include_path(path.c_str());
-            if (enable_hdd_include)
-            {
-                std::string hddpath = gSavedSettings.getString("_NACL_PreProcHDDIncludeLocation");
-                if (!hddpath.empty())
-                {
-                    ctx.add_include_path(hddpath.c_str());
-                    ctx.add_sysinclude_path(hddpath.c_str());
-                }
-            }
-            std::string def = llformat("__AGENTKEY__=\"%s\"", gAgentID.asString().c_str());//legacy because I used it earlier
-            ctx.add_macro_definition(def, false);
-            def = llformat("__AGENTID__=\"%s\"", gAgentID.asString().c_str());
-            ctx.add_macro_definition(def, false);
-            def = llformat("__AGENTIDRAW__=%s", gAgentID.asString().c_str());
-            ctx.add_macro_definition(def, false);
-            std::string aname = gAgentAvatarp->getFullname();
-            def = llformat("__AGENTNAME__=\"%s\"", aname.c_str());
-            ctx.add_macro_definition(def, false);
-            def = llformat("__ASSETID__=%s", LLUUID::null.asString().c_str());
-            ctx.add_macro_definition(def, false);
-            def = llformat("__SHORTFILE__=\"%s\"", name.c_str());
-            ctx.add_macro_definition(def, false);
-            def = llformat("__UNIXTIME__=%i", (S32)time_corrected());
-            ctx.add_macro_definition(def, false);
-
-            ctx.add_macro_definition("list(...)=((list)(__VA_ARGS__))", false);
-            ctx.add_macro_definition("float(...)=((float)(__VA_ARGS__))", false);
-            ctx.add_macro_definition("integer(...)=((integer)(__VA_ARGS__))", false);
-            ctx.add_macro_definition("key(...)=((key)(__VA_ARGS__))", false);
-            ctx.add_macro_definition("rotation(...)=((rotation)(__VA_ARGS__))", false);
-            ctx.add_macro_definition("quaternion(...)=((quaternion)(__VA_ARGS__))", false);
-            ctx.add_macro_definition("string(...)=((string)(__VA_ARGS__))", false);
-            ctx.add_macro_definition("vector(...)=((vector)(__VA_ARGS__))", false);
-
-            context_type::iterator_type first = ctx.begin();
-            context_type::iterator_type last = ctx.end();
-
-            while (first != last)
-            {
-                if (caching_files.size() != 0)
-                {
-                    mWaving = false;
-                    return;
-                }
-                current_position = (*first).get_position();
-
-                std::string token = std::string((*first).get_value().c_str());//stupid boost bitching even though we know its a std::string
-
-                if (token == "#line")
-                {
-                    token = "//#line";
-                }
-
-                output += token;
-
-                if (!lazy_lists)
-                {
-                    lazy_lists = ctx.is_defined_macro(std::string("USE_LAZY_LISTS"));
-                }
-
-                if (!use_switch)
-                {
-                    use_switch = ctx.is_defined_macro(std::string("USE_SWITCHES"));
-                }
-                ++first;
-            }
-        }
-        catch(boost::wave::cpp_exception const& e)
-        {
-            errored = true;
-            // some preprocessing error
-            LLStringUtil::format_map_t args;
-            args["[ERR_NAME]"] = e.file_name();
-            args["[LINENUMBER]"] = llformat("%d", e.line_no() - 1);
-            args["[ERR_DESC]"] = e.description();
-            std::string err = LLTrans::getString("fs_preprocessor_cpp_exception", args);
-            LL_WARNS("FSLSLPreprocessor") << err << LL_ENDL;
-            display_error(err);
-        }
-        catch(boost::wave::cpplexer::lexing_exception const& e)
-        {
-            // lexing preprocessing error
-            boost::wave::cpplexer::util::severity severity_level = e.severity_level(e.get_errorcode());
-            errored = (severity_level != boost::wave::cpplexer::util::severity_warning && severity_level != boost::wave::cpplexer::util::severity_remark);
-            LLStringUtil::format_map_t args;
-            std::string severity_text = e.severity_text(e.get_errorcode());
-            LLStringUtil::toUpper(severity_text);
-            args["[SEVERITY]"] = severity_text;
-            args["[ERR_NAME]"] = e.file_name();
-            args["[LINENUMBER]"] = llformat("%d", e.line_no() - 1);
-            args["[ERR_DESC]"] = e.description();
-            std::string err = LLTrans::getString("fs_preprocessor_lexing_exception", args);
-            LL_WARNS("FSLSLPreprocessor") << err << LL_ENDL;
-            display_error(err);
-        }
-        catch(std::exception const& e)
-        {
-            FAILDEBUG
-            errored = true;
-            LLStringUtil::format_map_t args;
-            args["[ERR_NAME]"] = std::string(current_position.get_file().c_str());
-            args["[LINENUMBER]"] = llformat("%d", current_position.get_line());
-            args["[ERR_DESC]"] = e.what();
-            display_error(LLTrans::getString("fs_preprocessor_exception", args));
-        }
-        catch (...)
-        {
-            FAILDEBUG
-            errored = true;
-            LLStringUtil::format_map_t args;
-            args["[ERR_NAME]"] = std::string(current_position.get_file().c_str());
-            args["[LINENUMBER]"] = llformat("%d", current_position.get_line());
-            std::string err = LLTrans::getString("fs_preprocessor_error", args);
-            LL_WARNS("FSLSLPreprocessor") << err << LL_ENDL;
-            display_error(err);
-        }
     }
 
     if (preprocessor_enabled && !errored)

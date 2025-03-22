@@ -28,13 +28,11 @@
 #include "llmath.h"
 #include "llquantize.h"
 
-extern const LLQuad F_ZERO_4A       = { 0, 0, 0, 0 };
-extern const LLQuad F_APPROXIMATELY_ZERO_4A = {
-    F_APPROXIMATELY_ZERO,
-    F_APPROXIMATELY_ZERO,
-    F_APPROXIMATELY_ZERO,
-    F_APPROXIMATELY_ZERO
-};
+const float F_ZERO_4A_init[4] = { 0, 0, 0, 0 };
+const float F_APPROXIMATELY_ZERO_4A_init[4] = { F_APPROXIMATELY_ZERO, F_APPROXIMATELY_ZERO, F_APPROXIMATELY_ZERO, F_APPROXIMATELY_ZERO };
+
+extern const LLQuad F_ZERO_4A               = _mm_load_ps(F_ZERO_4A_init);
+extern const LLQuad F_APPROXIMATELY_ZERO_4A = _mm_load_ps(F_APPROXIMATELY_ZERO_4A_init);
 
 extern const LLVector4a LL_V4A_ZERO = reinterpret_cast<const LLVector4a&> ( F_ZERO_4A );
 extern const LLVector4a LL_V4A_EPSILON = reinterpret_cast<const LLVector4a&> ( F_APPROXIMATELY_ZERO_4A );
