@@ -166,7 +166,7 @@ public:
     void loadModelCallback(S32 lod);
     bool lodsReady() { return !mGenLOD && mLodsQuery.empty(); }
     void queryLODs() { mGenLOD = true; };
-    void genGlodLODs(S32 which_lod = -1, U32 decimation = 3, bool enforce_tri_limit = false);
+    //void genGlodLODs(S32 which_lod = -1, U32 decimation = 3, bool enforce_tri_limit = false);
     void genMeshOptimizerLODs(S32 which_lod, S32 meshopt_mode, U32 decimation = 3, bool enforce_tri_limit = false);
     void generateNormals();
     void restoreNormals();
@@ -177,7 +177,7 @@ public:
     void clearIncompatible(S32 lod);
     void updateStatusMessages();
     void updateLodControls(S32 lod);
-    void clearGLODGroup();
+    //void clearGLODGroup();
     void onLODGLODParamCommit(S32 lod, bool enforce_tri_limit);
     void onLODMeshOptimizerParamCommit(S32 lod, bool enforce_tri_limit, S32 mode);
     void addEmptyFace(LLModel* pTarget);

@@ -36,6 +36,8 @@
 #define GROWLNOTIFIERWIN_H
 
 #include "growlnotifier.h"
+
+#if !defined(LL_WINDOWS) && !defined(_M_ARM64)
 #include <growl++.hpp>
 
 class GrowlNotifierWin : public GrowlNotifier
@@ -52,5 +54,5 @@ private:
     std::string mApplicationName;
     Growl* mGrowlImpl;
 };
-
+#endif
 #endif // GROWLNOTIFIERWIN_H

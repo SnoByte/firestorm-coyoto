@@ -24,6 +24,7 @@
  */
 
 vec3 getAdditiveColor();
+vec3 getSunlitColor();
 vec3 getAtmosAttenuation();
 vec3 scaleSoftClipFrag(vec3 light);
 

@@ -49,7 +49,7 @@ class LLMutex ;
 #endif
 
 #if LL_WINDOWS
-#define LL_DEFAULT_HEAP_ALIGN 8
+#define LL_DEFAULT_HEAP_ALIGN 16
 #elif LL_DARWIN
 #define LL_DEFAULT_HEAP_ALIGN 16
 #elif LL_LINUX
@@ -71,7 +71,7 @@ LL_COMMON_API void ll_assert_aligned_func(uintptr_t ptr,U32 alignment);
 #define ll_assert_aligned(ptr,alignment)
 #endif
 
-#include <xmmintrin.h>
+#include <sse2neon.h>
 
 template <typename T> T* LL_NEXT_ALIGNED_ADDRESS(T* address)
 {

@@ -36,7 +36,8 @@
 
 #include "llviewerprecompiledheaders.h"
 #include "llpreviewscript.h"
-
+#include <cstring> // SGI MIPSpro compilers need this]
+namespace std { using ::strerror; }
 struct LLScriptQueueData;
 
 class FSLSLPreprocessor
@@ -89,6 +90,13 @@ public:
     bool mClose;
     bool mSync;
     std::string mMainScriptName;
+    //error_type invalid_chars{ /* stuff */ };
+
+
+    static bool native(const std::string& name)
+    {
+        return name.size() != 0 && name[0] != ' ' && name.find('/') == std::string::npos;
+    }
 
     // Compile queue
     bool mStandalone;

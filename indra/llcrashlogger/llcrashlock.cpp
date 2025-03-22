@@ -33,7 +33,13 @@
 #include "llsd.h"
 #include "llsdserialize.h"
 #include "llframetimer.h"
-#include <boost/filesystem.hpp>
+#ifdef WITH_BOOST_FS
+   #include "boost/filesystem.hpp"
+   namespace fs  = boost::filesystem;
+#else
+   #include <filesystem>
+   namespace fs  = std::filesystem;
+#endif
 #include <string>
 #include <iostream>
 #include <stdio.h>
@@ -189,21 +195,21 @@ LLSD LLCrashLock::getProcessList()
 bool LLCrashLock::fileExists(std::string filename)
 {
 #ifdef LL_WINDOWS // or BOOST_WINDOWS_API
-    boost::filesystem::path file_path(utf8str_to_utf16str(filename));
+    fs::path file_path(utf8str_to_utf16str(filename));
 #else
-    boost::filesystem::path file_path(filename);
+    fs::path file_path(filename);
 #endif
-    return boost::filesystem::exists(file_path);
+    return fs::exists(file_path);
 }
 
 void LLCrashLock::cleanupProcess(std::string proc_dir)
 {
 #ifdef LL_WINDOWS // or BOOST_WINDOWS_API
-    boost::filesystem::path dir_path(utf8str_to_utf16str(proc_dir));
+    fs::path dir_path(utf8str_to_utf16str(proc_dir));
 #else
-    boost::filesystem::path dir_path(proc_dir);
+    fs::path dir_path(proc_dir);
 #endif
-    boost::filesystem::remove_all(dir_path);
+    fs::remove_all(dir_path);
 }
 
 bool LLCrashLock::putProcessList(const LLSD& proc_sd)

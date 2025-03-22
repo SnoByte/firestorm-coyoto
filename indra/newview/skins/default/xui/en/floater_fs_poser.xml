@@ -883,11 +883,13 @@ width="430">
 						</spinner>
 						<check_box
 						 control_name="FSManipRotateJointUseNaturalDirection"
+                       
 						 name="natural_direction_checkbox"
 						 height="16"
 						 label="Use natural alignment"
 						 follows="left|top"
 						 left="5"
+
 						 tool_tip="The skeleton has unnatural joint rotations by default. This complicates posing. When checked, the joints will rotate in a more natural way."
 						 top_pad="10"
 						 width="134" />

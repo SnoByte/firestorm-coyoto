@@ -1249,6 +1249,8 @@ bool LLXMLNode::getAttribute(const char* name, LLXMLNodePtr& node, bool use_defa
 
 bool LLXMLNode::getAttribute(const LLStringTableEntry* name, LLXMLNodePtr& node, bool use_default_if_missing)
 {
+    if (name
+        == NULL) return false;
     LLXMLAttribList::const_iterator child_itr = mAttributes.find(name);
     if (child_itr != mAttributes.end())
     {

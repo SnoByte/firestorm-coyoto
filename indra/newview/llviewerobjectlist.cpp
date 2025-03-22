@@ -1748,8 +1748,10 @@ void LLViewerObjectList::cleanDeadObjects(bool use_timer)
 void LLViewerObjectList::removeFromActiveList(LLViewerObject* objectp)
 {
     S32 idx = objectp->getListIndex();
-    if (idx != -1)
-    {
+    if (idx != -1 && mActiveObjects.size() > 0) // <FS:Beq/> FIRE-35090 - Bugsplat on exit when last_index == -1/mActiveObjects.size() == 0
+    { //remove by moving last element to this object's position
+        llassert(mActiveObjects[idx] == objectp);
+
         objectp->setListIndex(-1);
 
         S32 size = (S32)mActiveObjects.size();

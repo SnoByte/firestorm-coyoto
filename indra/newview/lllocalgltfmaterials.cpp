@@ -32,8 +32,15 @@
 
 /* boost: will not compile unless equivalent is undef'd, beware. */
 #include "fix_macros.h"
-#include <boost/filesystem.hpp>
+#ifdef WITH_BOOST_FS
+   #include "boost/filesystem.hpp"
+   namespace fs  = boost::filesystem;
+#else
+   #include <filesystem>
+   namespace fs  = std::filesystem;
+#endif
 
+#include "llcommonutils.h"
 /* time headers */
 #include <time.h>
 #include <ctime>
@@ -132,9 +139,9 @@ bool LLLocalGLTFMaterial::updateSelf()
             // verifying that the file has indeed been modified
 
 #ifndef LL_WINDOWS
-            const std::time_t temp_time = boost::filesystem::last_write_time(boost::filesystem::path(mFilename));
+            const std::time_t temp_time = fs::last_write_time(fs::path(mFilename));
 #else
-            const std::time_t temp_time = boost::filesystem::last_write_time(boost::filesystem::path(utf8str_to_utf16str(mFilename)));
+            const std::time_t temp_time = LLCommonUtils::file_time_to_time_t(fs::last_write_time(fs::path(utf8str_to_utf16str(mFilename))));
 #endif
             LLSD new_last_modified = asctime(localtime(&temp_time));
 

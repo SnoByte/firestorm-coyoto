@@ -32,7 +32,7 @@
 #include "lltreeiterators.h"
 
 #if LL_WINDOWS
-#include <intrin.h>
+#include <sse2neon.h>
 #endif
 
 #define LL_FAST_TIMER_ON 1
@@ -99,7 +99,7 @@ public:
 #if LL_FASTTIMER_USE_RDTSC
     static U32 getCPUClockCount32()
     {
-        unsigned __int64 val = __rdtsc();
+        unsigned __int64 val = _rdtsc();
         val = val >> 8;
         return static_cast<U32>(val);
     }
@@ -107,7 +107,7 @@ public:
     // return full timer value, *not* shifted by 8 bits
     static U64 getCPUClockCount64()
     {
-        return static_cast<U64>( __rdtsc() );
+        return static_cast<U64>( _rdtsc() );
     }
 
 #else

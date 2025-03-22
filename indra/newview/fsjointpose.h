@@ -143,6 +143,8 @@ class FSJointPose
     /// Resets the beginning properties of the joint this represents.
     /// </summary>
     void recaptureJoint();
+
+
     /// <summary>
     /// Recalculates the delta reltive to the base for a new rotation.
     /// </summary>
@@ -201,7 +203,9 @@ class FSJointPose
             mRotation.set(otherState.mRotation);
         }
 
+
         bool baseRotationIsZero() const { return mBaseRotation == LLQuaternion::DEFAULT; }
+
 
         void zeroBaseRotation() { mBaseRotation = LLQuaternion::DEFAULT; }
 

@@ -81,10 +81,12 @@ class FSFloaterPoser : public LLFloater, public LLEditMenuHandler
 public:    
     void updatePosedBones();
     void selectJointByName(const std::string& jointName);
+
     void  undo() override { onUndoLastChange(); };
     bool  canUndo() const  override { return true; }
     void  redo() override { onRedoLastChange(); };
     bool  canRedo() const override { return true; }    
+
  private:
     bool postBuild() override;
     void onOpen(const LLSD& key) override;

@@ -187,6 +187,7 @@ protected:
     WCHAR       *mWindowTitle;
     WCHAR       *mWindowClassName;
 
+    //WindowId    mWindowId     = 0;
     HWND        mWindowHandle = 0;  // window handle
     HGLRC       mhRC = 0;           // OpenGL rendering context
     HDC         mhDC = 0;           // Windows Device context handle

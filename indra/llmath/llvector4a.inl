@@ -335,8 +335,8 @@ inline void LLVector4a::normalize3()
     LLVector4a lenSqrd; lenSqrd.setAllDot3( *this, *this );
     // rsqrt = approximate reciprocal square (i.e., { ~1/len(a)^2, ~1/len(a)^2, ~1/len(a)^2, ~1/len(a)^2 }
     const LLQuad rsqrt = _mm_rsqrt_ps(lenSqrd.mQ);
-    static const LLQuad half = { 0.5f, 0.5f, 0.5f, 0.5f };
-    static const LLQuad three = {3.f, 3.f, 3.f, 3.f };
+    static const LLQuad half  = _mm_set1_ps(0.5f);
+    static const LLQuad three = _mm_set1_ps(3.f);
     // Now we do one round of Newton-Raphson approximation to get full accuracy
     // According to the Newton-Raphson method, given a first 'w' for the root of f(x) = 1/x^2 - a (i.e., x = 1/sqrt(a))
     // the next better approximation w[i+1] = w - f(w)/f'(w) = w - (1/w^2 - a)/(-2*w^(-3))
@@ -359,8 +359,8 @@ inline void LLVector4a::normalize4()
     LLVector4a lenSqrd; lenSqrd.setAllDot4( *this, *this );
     // rsqrt = approximate reciprocal square (i.e., { ~1/len(a)^2, ~1/len(a)^2, ~1/len(a)^2, ~1/len(a)^2 }
     const LLQuad rsqrt = _mm_rsqrt_ps(lenSqrd.mQ);
-    static const LLQuad half = { 0.5f, 0.5f, 0.5f, 0.5f };
-    static const LLQuad three = {3.f, 3.f, 3.f, 3.f };
+    static const LLQuad half  = _mm_set1_ps(0.5f);
+    static const LLQuad three = _mm_set1_ps(3.f);
     // Now we do one round of Newton-Raphson approximation to get full accuracy
     // According to the Newton-Raphson method, given a first 'w' for the root of f(x) = 1/x^2 - a (i.e., x = 1/sqrt(a))
     // the next better approximation w[i+1] = w - f(w)/f'(w) = w - (1/w^2 - a)/(-2*w^(-3))
@@ -383,8 +383,8 @@ inline LLSimdScalar LLVector4a::normalize3withLength()
     LLVector4a lenSqrd; lenSqrd.setAllDot3( *this, *this );
     // rsqrt = approximate reciprocal square (i.e., { ~1/len(a)^2, ~1/len(a)^2, ~1/len(a)^2, ~1/len(a)^2 }
     const LLQuad rsqrt = _mm_rsqrt_ps(lenSqrd.mQ);
-    static const LLQuad half = { 0.5f, 0.5f, 0.5f, 0.5f };
-    static const LLQuad three = {3.f, 3.f, 3.f, 3.f };
+    static const LLQuad half = _mm_set1_ps(0.5f);
+    static const LLQuad three = _mm_set1_ps(3.f);
     // Now we do one round of Newton-Raphson approximation to get full accuracy
     // According to the Newton-Raphson method, given a first 'w' for the root of f(x) = 1/x^2 - a (i.e., x = 1/sqrt(a))
     // the next better approximation w[i+1] = w - f(w)/f'(w) = w - (1/w^2 - a)/(-2*w^(-3))

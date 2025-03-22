@@ -43,6 +43,7 @@
 #include "lljoint.h"
 #include "llagent.h"          // for gAgent, etc.
 #include "llagentcamera.h"
+
 #include "llappviewer.h"
 #include "llcontrol.h"
 #include "llfloaterreg.h"
@@ -53,6 +54,7 @@
 #include "llviewershadermgr.h"
 #include "fsfloaterposer.h"
 // -------------------------------------
+
 
 
 /**
@@ -68,7 +70,9 @@
  * @return void
  *
  */
+
 static void renderPulsingSphere(const LLVector3& joint_world_position, const LLColor4& color = LLColor4(1.f, 1.f, 1.f, 1.f))
+
 {
     constexpr float MAX_SPHERE_RADIUS = 0.05f;      // Base radius in agent-space units.
     constexpr float PULSE_AMPLITUDE = 0.01f;         // Additional radius variation.
@@ -78,7 +82,9 @@ static void renderPulsingSphere(const LLVector3& joint_world_position, const LLC
     // Get the current time (in seconds) from the global timer.
     const U64 timeMicrosec = gFrameTime; 
     // Convert microseconds to seconds
+
     const F64 timeSec = std::fmod(static_cast<F64>(timeMicrosec) / 1000000.0, PULSE_TIME_DOMAIN);
+
     // Compute the pulse factor using a sine wave. This value oscillates between 0 and 1.
     float pulseFactor = 0.75f + 0.25f * std::sin(PULSE_FREQUENCY * 2.f * F_PI * static_cast<F32>(timeSec));
 
@@ -130,7 +136,9 @@ static void renderPulsingSphere(const LLVector3& joint_world_position, const LLC
 }
 
 
+
 static bool isMouseOverJoint(S32 mouseX, S32 mouseY, const LLVector3& jointWorldPos, F32 jointRadius, F32& outDistanceFromCamera)
+
 {
     LLViewerCamera* camera = LLViewerCamera::getInstance();
 
@@ -200,6 +208,7 @@ const std::unordered_map<FSManipRotateJoint::e_manip_part, FSManipRotateJoint::R
 // Helper function: Builds an alignment quaternion from the computed bone axes.
 // This quaternion rotates from the default coordinate system (assumed to be
 // X = (1,0,0), Y = (0,1,0), Z = (0,0,1)) into the bone’s natural coordinate system.
+
 LLQuaternion FSManipRotateJoint::computeAlignmentQuat(const BoneAxes& boneAxes) const
 {
     LLQuaternion alignmentQuat(boneAxes.naturalX, boneAxes.naturalY, boneAxes.naturalZ);

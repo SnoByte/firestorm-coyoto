@@ -16,7 +16,7 @@ set(ROOT_PROJECT_NAME "Firestorm" CACHE STRING
     "The root project/makefile/solution name. Defaults to Firestorm.")
 project(${ROOT_PROJECT_NAME})
 
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake"  "${CMAKE_CURRENT_BINARY_DIR}")
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake"  "${CMAKE_CURRENT_LIB_NDOFBINARY_DIR}")
 
 include(conanbuildinfo OPTIONAL RESULT_VARIABLE USE_CONAN )
 if( USE_CONAN )
@@ -28,11 +28,6 @@ else()
   set( USE_CONAN OFF )
   set( USE_AUTOBUILD_3P ON )
 endif()
-
-if (NOT DEFINED CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 20)
-endif()
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(Variables)
 include(BuildVersion)

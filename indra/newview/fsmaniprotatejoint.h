@@ -1,39 +1,3 @@
-/**
- * @file fsmaniproatejoint.h
- * @brief custom manipulator for rotating joints
- *
- * $LicenseInfo:firstyear=2024&license=viewerlgpl$
- * Phoenix Firestorm Viewer Source Code
- * Copyright (c) 2025 Beq Janus @ Second Life
- *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation;
- * version 2.1 of the License only.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
- *
- * The Phoenix Firestorm Project, Inc., 1831 Oakwood Drive, Fairmont, Minnesota 56031-3225 USA
- * http://www.firestormviewer.org
- * $/LicenseInfo$
- */
-
-#ifndef FS_MANIP_ROTATE_JOINT_H
-#define FS_MANIP_ROTATE_JOINT_H
-
-#include "llselectmgr.h"
-#include "llmaniprotate.h"
-
-class LLJoint;
-class LLVOAvatar;  // or LLVOAvatarSelf, etc.
-
 namespace {
     const F32 AXIS_ONTO_CAM_TOLERANCE = cos( 80.f * DEG_TO_RAD ); // cos() is not constexpr til c++26
     constexpr F32 RADIUS_PIXELS = 100.f;        // size in screen space
@@ -131,7 +95,6 @@ private:
     void updateManipulatorScale(EManipPart part, LLVector4& scales);
     void renderActiveRing( F32 radius, F32 width, const LLColor4& front_color, const LLColor4& back_color);
     void renderManipulatorRings(const LLVector3& center, const LLQuaternion& finalAlignment);
-
     void renderCenterCircle(const F32 radius, const LLColor4& normal_color = LLColor4(0.7f,0.7,0.7f,0.2), const LLColor4& highlight_color = LLColor4(0.8f,0.8f,0.8f,0.3));
     void renderCenterSphere(const F32 radius, const LLColor4& normal_color = LLColor4(0.7f,0.7,0.7f,0.2), const LLColor4& highlight_color = LLColor4(0.8f,0.8f,0.8f,0.3));
     void renderRingPass(const RingRenderParams& params, float radius, float width, int pass);

@@ -388,8 +388,8 @@ const long UPLOAD_RETRY_LIMIT = 0L;
 const S32 MAX_MESH_VERSION = 999;
 
 //<FS:TS> FIRE-11451: Cap concurrent mesh requests at a sane value
-const U32 MESH_CONCURRENT_REQUEST_LIMIT = 64;  // upper limit
-const U32 MESH2_CONCURRENT_REQUEST_LIMIT = 32;  // upper limit
+const U32 MESH_CONCURRENT_REQUEST_LIMIT = 256;  // upper limit
+const U32 MESH2_CONCURRENT_REQUEST_LIMIT = 256;  // upper limit
 //</FS:TS> FIRE-11451
 
 U32 LLMeshRepository::sBytesReceived = 0;
@@ -4080,7 +4080,7 @@ void LLMeshRepository::notifyLoadedMeshes()
             }
 
             // erase from background thread
-            mThread->mWorkQueue.post([=, this]()
+            mThread->mWorkQueue.post([=]()
                 {
                     mThread->mSkinMap.erase(id);
                 });

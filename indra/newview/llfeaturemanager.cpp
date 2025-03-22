@@ -62,7 +62,7 @@
 
 // <FS:Techwolf Lupindo> downloadable gpu table support
 #include "fscommon.h"
-#include <boost/filesystem.hpp>
+//#include <boost/filesystem.hpp>
 // </FS:Techwolf Lupindo>
 
 #if LL_DARWIN

@@ -2489,8 +2489,8 @@ target_link_libraries(${VIEWER_BINARY_NAME}
         ll::bugsplat
         ll::tracy
         ll::openxr
-        fs::glod # <FS:Beq/> restore GLOD dependencies
-        fs::discord # <FS:Ansariel> Discord  support
+        #fs::glod # <FS:Beq/> restore GLOD dependencies
+        #fs::discord # <FS:Ansariel> Discord  support
         )
 
 if( TARGET ll::intel_memops )
@@ -2504,7 +2504,7 @@ if (USE_BUGSPLAT)
 endif (USE_BUGSPLAT)
 
 # <FS:Ansariel> Growl support
-if (WINDOWS OR DARWIN)
+if (DARWIN)
     target_link_libraries(${VIEWER_BINARY_NAME} fs::growl)
 endif (WINDOWS OR DARWIN)
 # </FS:Ansariel>

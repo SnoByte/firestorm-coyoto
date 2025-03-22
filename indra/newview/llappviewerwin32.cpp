@@ -277,10 +277,11 @@ const std::string LLAppViewerWin32::sWindowClass = "Second Life";
 */
 void nvapi_error(NvAPI_Status status)
 {
+#ifdef LL_NVAPI
     NvAPI_ShortString szDesc = {0};
     NvAPI_GetErrorMessage(status, szDesc);
     LL_WARNS() << szDesc << LL_ENDL;
-
+#endif
     //should always trigger when asserts are enabled
     //llassert(status == NVAPI_OK);
 }
@@ -308,6 +309,7 @@ bool create_app_mutex()
 
 void ll_nvapi_init(NvDRSSessionHandle hSession)
 {
+#ifdef LL_NVAPI
     // (2) load all the system settings into the session
     NvAPI_Status status = NvAPI_DRS_LoadSettings(hSession);
     if (status != NVAPI_OK)
@@ -459,6 +461,9 @@ void ll_nvapi_init(NvDRSSessionHandle hSession)
         nvapi_error(status);
         return;
     }
+#else
+    return;
+#endif
 }
 
 //#define DEBUGGING_SEH_FILTER 1
@@ -532,6 +537,7 @@ int APIENTRY WINMAIN(HINSTANCE hInstance,
 
     NvDRSSessionHandle hSession = 0;
     static LLCachedControl<bool> use_nv_api(gSavedSettings, "NvAPICreateApplicationProfile", true);
+    #ifdef LL_NVAPI
     if (use_nv_api)
     {
         NvAPI_Status status;
@@ -554,6 +560,7 @@ int APIENTRY WINMAIN(HINSTANCE hInstance,
             }
         }
     }
+    #endif
 
     // Have to wait until after logging is initialized to display LFH info
     if (num_heaps > 0)
@@ -611,13 +618,14 @@ int APIENTRY WINMAIN(HINSTANCE hInstance,
     delete viewer_app_ptr;
     viewer_app_ptr = NULL;
 
+    #ifdef LL_NVAPI
     // (NVAPI) (6) We clean up. This is analogous to doing a free()
     if (hSession)
     {
         NvAPI_DRS_DestroySession(hSession);
         hSession = 0;
     }
-
+    #endif
     return 0;
 }
 

@@ -73,6 +73,8 @@
 #include <dinput.h>
 #include <Dbt.h.>
 #include <InitGuid.h> // needed for llurlentry test to build on some systems
+#include <dwmapi.h>
+#pragma comment(lib, "dwmapi.lib")
 #pragma comment(lib, "dxguid.lib") // needed for llurlentry test to build on some systems
 #pragma comment(lib, "dinput8")
 
@@ -140,6 +142,13 @@ typedef HRESULT(STDAPICALLTYPE *GetDpiForMonitorType)(
 //
 // LLWindowWin32
 //
+
+bool SetWindowDarkMode(HWND hWnd, bool enable)
+{
+    BOOL    value = enable;
+    HRESULT hr    = DwmSetWindowAttribute(hWnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &value, sizeof(value));
+    return SUCCEEDED(hr);
+}
 
 void show_window_creation_error(const std::string& title)
 {
@@ -1789,6 +1798,7 @@ void LLWindowWin32::recreateWindow(RECT window_rect, DWORD dw_ex_style, DWORD dw
                 // Update mWindowThread's own mWindowHandle and mhDC.
                 self->mWindowHandleThrd = handle;
                 self->mhDCThrd = GetDC(handle);
+                SetWindowDarkMode(handle, true);
             }
 
             updateWindowRect();

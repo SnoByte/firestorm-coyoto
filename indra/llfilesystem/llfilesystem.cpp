@@ -33,8 +33,15 @@
 #include "llfilesystem.h"
 #include "llfasttimer.h"
 #include "lldiskcache.h"
-
-#include "boost/filesystem.hpp"
+#include "boost/system.hpp"
+#ifdef WITH_BOOST_FS
+   #include "boost/filesystem.hpp"
+   namespace fs  = boost::filesystem;
+#else
+   #include <filesystem>
+   namespace fs  = std::filesystem;
+#endif
+#include "llcommonutils.h"
 
 constexpr S32 LLFileSystem::READ        = 0x00000001;
 constexpr S32 LLFileSystem::WRITE       = 0x00000002;
@@ -412,7 +419,7 @@ void LLFileSystem::updateFileAccessTime(const std::string& file_path)
     boost::system::error_code ec;
 #if LL_WINDOWS
     // file last write time
-    const std::time_t last_write_time = boost::filesystem::last_write_time(utf8str_to_utf16str(file_path), ec);
+    const std::time_t last_write_time = LLCommonUtils::file_time_to_time_t(fs::last_write_time(utf8str_to_utf16str(file_path), ec));
     if (ec.failed())
     {
         LL_WARNS() << "Failed to read last write time for cache file " << file_path << ": " << ec.message() << LL_ENDL;
@@ -426,11 +433,11 @@ void LLFileSystem::updateFileAccessTime(const std::string& file_path)
     // before the last one
     if (delta_time > time_threshold)
     {
-        boost::filesystem::last_write_time(utf8str_to_utf16str(file_path), cur_time, ec);
+        LLCommonUtils::file_time_to_time_t(fs::last_write_time(utf8str_to_utf16str(file_path), ec));
     }
 #else
     // file last write time
-    const std::time_t last_write_time = boost::filesystem::last_write_time(file_path, ec);
+    const std::time_t last_write_time = fs::last_write_time(file_path, ec);
     if (ec.failed())
     {
         LL_WARNS() << "Failed to read last write time for cache file " << file_path << ": " << ec.message() << LL_ENDL;
@@ -444,7 +451,7 @@ void LLFileSystem::updateFileAccessTime(const std::string& file_path)
     // before the last one
     if (delta_time > time_threshold)
     {
-        boost::filesystem::last_write_time(file_path, cur_time, ec);
+        fs::last_write_time(file_path, cur_time, ec);
     }
 #endif
 

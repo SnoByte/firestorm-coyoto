@@ -293,7 +293,7 @@ namespace {
             // Check whether it's okay to use ANSI; if stderr is
             // a tty then we assume yes.  Can be turned off with
             // the LL_NO_ANSI_COLOR env var.
-            return (0 != isatty(2)) &&
+            return (0 != _isatty(2)) &&
                 (NULL == getenv("LL_NO_ANSI_COLOR"));
         }
     };

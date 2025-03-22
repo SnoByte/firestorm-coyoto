@@ -37,7 +37,13 @@
 
 /* boost: will not compile unless equivalent is undef'd, beware. */
 #include "fix_macros.h"
-#include <boost/filesystem.hpp>
+#ifdef WITH_BOOST_FS
+   #include "boost/filesystem.hpp"
+   namespace fs  = boost::filesystem;
+#else
+   #include <filesystem>
+   namespace fs  = std::filesystem;
+#endif
 
 #include "llappviewer.h"
 #include "llagent.h"
@@ -755,12 +761,12 @@ void FSData::saveLLSD(const LLSD& data, const std::string& filename, const LLDat
     }
     file.close();
 
-    const std::time_t new_time = (std::time_t)last_modified.secondsSinceEpoch();
+    //const std::time_t new_time = (std::time_t)last_modified.secondsSinceEpoch();
 
 #ifdef LL_WINDOWS
-    boost::filesystem::last_write_time(boost::filesystem::path(utf8str_to_utf16str(filename)), new_time);
+    fs::last_write_time(fs::path(utf8str_to_utf16str(filename)), fs::file_time_type::clock::now());
 #else
-    boost::filesystem::last_write_time(boost::filesystem::path(filename), new_time);
+    fs::last_write_time(fs::path(filename), fs::file_time_type::clock::now());
 #endif
 }
 

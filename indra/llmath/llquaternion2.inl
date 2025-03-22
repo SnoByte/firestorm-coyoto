@@ -26,8 +26,8 @@
 
 #include "llquaternion2.h"
 
-static const LLQuad LL_V4A_PLUS_ONE = {1.f, 1.f, 1.f, 1.f};
-static const LLQuad LL_V4A_MINUS_ONE = {-1.f, -1.f, -1.f, -1.f};
+static const LLQuad LL_V4A_PLUS_ONE  = _mm_set1_ps(1.f);
+static const LLQuad LL_V4A_MINUS_ONE = _mm_set1_ps(-1.f);
 
 // Ctor from LLQuaternion
 inline LLQuaternion2::LLQuaternion2( const LLQuaternion& quat )

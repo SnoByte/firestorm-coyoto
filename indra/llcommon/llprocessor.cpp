@@ -37,7 +37,8 @@
 #   include "llwin32headers.h"
 #   define _interlockedbittestandset _renamed_interlockedbittestandset
 #   define _interlockedbittestandreset _renamed_interlockedbittestandreset
-#   include <intrin.h>
+#   include <sse2neon.h>
+#   include <thread>
 #   undef _interlockedbittestandset
 #   undef _interlockedbittestandreset
 #endif
@@ -407,16 +408,19 @@ static void _Delay(unsigned int ms)
 
 static F64 calculate_cpu_frequency(U32 measure_msecs)
 {
-    if(measure_msecs == 0)
+#if defined(_M_ARM64)
+    return 0;
+#else
+
+    if (measure_msecs == 0)
     {
         return 0;
     }
-
     // After that we declare some vars and check the frequency of the high
     // resolution timer for the measure process.
     // If there"s no high-res timer, we exit.
     unsigned __int64 starttime, endtime, timedif, freq, start, end, dif;
-    if (!QueryPerformanceFrequency((LARGE_INTEGER *) &freq))
+    if (!QueryPerformanceFrequency((LARGE_INTEGER*)&freq))
     {
         return 0;
     }
@@ -424,11 +428,11 @@ static F64 calculate_cpu_frequency(U32 measure_msecs)
     // Now we can init the measure process. We set the process and thread priority
     // to the highest available level (Realtime priority). Also we focus the
     // first processor in the multiprocessor system.
-    HANDLE hProcess = GetCurrentProcess();
-    HANDLE hThread = GetCurrentThread();
+    HANDLE        hProcess           = GetCurrentProcess();
+    HANDLE        hThread            = GetCurrentThread();
     unsigned long dwCurPriorityClass = GetPriorityClass(hProcess);
-    int iCurThreadPriority = GetThreadPriority(hThread);
-    DWORD_PTR dwProcessMask, dwSystemMask, dwNewMask = 1;
+    int           iCurThreadPriority = GetThreadPriority(hThread);
+    DWORD_PTR     dwProcessMask, dwSystemMask, dwNewMask = 1;
     GetProcessAffinityMask(hProcess, &dwProcessMask, &dwSystemMask);
 
     SetPriorityClass(hProcess, REALTIME_PRIORITY_CLASS);
@@ -438,11 +442,11 @@ static F64 calculate_cpu_frequency(U32 measure_msecs)
     //// Now we call a CPUID to ensure, that all other prior called functions are
     //// completed now (serialization)
     //__asm cpuid
-    int cpu_info[4] = {-1};
+    int cpu_info[4] = { -1 };
     __cpuid(cpu_info, 0);
 
     // We ask the high-res timer for the start time
-    QueryPerformanceCounter((LARGE_INTEGER *) &starttime);
+    QueryPerformanceCounter((LARGE_INTEGER*)&starttime);
 
     // Then we get the current cpu clock and store it
     start = __rdtsc();
@@ -452,7 +456,7 @@ static F64 calculate_cpu_frequency(U32 measure_msecs)
     //  Sleep(uiMeasureMSecs);
 
     // We ask for the end time
-    QueryPerformanceCounter((LARGE_INTEGER *) &endtime);
+    QueryPerformanceCounter((LARGE_INTEGER*)&endtime);
 
     // And also for the end cpu clock
     end = __rdtsc();
@@ -463,7 +467,7 @@ static F64 calculate_cpu_frequency(U32 measure_msecs)
     SetPriorityClass(hProcess, dwCurPriorityClass);
 
     // Then we calculate the time and clock differences
-    dif = end - start;
+    dif     = end - start;
     timedif = endtime - starttime;
 
     // And finally the frequency is the clock difference divided by the time
@@ -472,7 +476,10 @@ static F64 calculate_cpu_frequency(U32 measure_msecs)
 
     // At last we just return the frequency that is also stored in the call
     // member var uqwFrequency - converted to MHz
-    return frequency  / (F64)1000000;
+    return frequency / (F64)1000000;
+
+#endif
+
 }
 
 // Windows implementation
@@ -482,44 +489,116 @@ public:
     LLProcessorInfoWindowsImpl()
     {
         getCPUIDInfo();
-        setInfo(eFrequency, calculate_cpu_frequency(50));
+        //setInfo(eFrequency, calculate_cpu_frequency(50));
     }
 
 private:
+    std::string getCPUVendorFromRegistry()
+    {
+        HKEY        hKey;
+        const char* subkey = "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0";
+        const char* value  = "VendorIdentifier";
+        char        data[128];
+        DWORD       dataSize = sizeof(data);
+
+        if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, subkey, 0, KEY_READ, &hKey) == ERROR_SUCCESS)
+        {
+            if (RegQueryValueExA(hKey, value, NULL, NULL, (LPBYTE)data, &dataSize) == ERROR_SUCCESS)
+            {
+                RegCloseKey(hKey);
+                return std::string(data, dataSize - 1); // Exclude the null terminator
+            }
+            RegCloseKey(hKey);
+        }
+        return "Unknown";
+    }
+
+    std::string getCPUInfoFromRegistry(const std::string& infoName)
+    {
+        HKEY        hKey;
+        const char* subkey = "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0";
+        char        data[128];
+        DWORD       dataSize = sizeof(data);
+
+        if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, subkey, 0, KEY_READ, &hKey) == ERROR_SUCCESS)
+        {
+            if (RegQueryValueExA(hKey, infoName.c_str(), NULL, NULL, (LPBYTE)data, &dataSize) == ERROR_SUCCESS)
+            {
+                RegCloseKey(hKey);
+                return std::string(data, dataSize - 1); // Exclude the null terminator
+            }
+            RegCloseKey(hKey);
+        }
+        return "Unknown";
+    }
+
+    std::vector<std::string> split_string(const std::string& str)
+    {
+        std::vector<std::string> result;
+        std::stringstream        ss(str);
+        std::string              token;
+        while (ss >> token)
+        {
+            result.push_back(token);
+        }
+        return result;
+    }
+
     void getCPUIDInfo()
     {
-        // http://msdn.microsoft.com/en-us/library/hskdteyh(VS.80).aspx
+    #if defined(_M_ARM64) //No simple way to get ARM CPU info on windows currently, besides the registery.
+        int cpu_info[4] = { -1 };
 
-        // __cpuid with an InfoType argument of 0 returns the number of
-        // valid Ids in cpu_info[0] and the CPU identification string in
-        // the other three array elements. The CPU identification string is
-        // not in linear order. The code below arranges the information
-        // in a human readable form.
-        int cpu_info[4] = {-1};
+        const auto processor_count = std::thread::hardware_concurrency();
+        setConfig(eMaxID, processor_count);
+
+        std::string cpu_vendor = getCPUVendorFromRegistry();
+        setInfo(eVendor, cpu_vendor);
+
+        std::string ProcessorFrequency    = getCPUInfoFromRegistry("~MHz"); //Definitly not accurate.
+        std::string ProcessorNameString   = getCPUInfoFromRegistry("ProcessorNameString");
+        std::vector ProcessorStringVector = split_string(ProcessorNameString);
+        std::string cpu_family            = ProcessorStringVector[0];
+        std::string cpu_brand             = ProcessorStringVector[1];
+
+        setInfo(eFamilyName, cpu_brand + cpu_family);
+        setInfo(eBrandName, cpu_brand);
+        setInfo(eFrequency, ProcessorFrequency);
+
+        // Get the information associated with each valid Id
+
+        setExtension(cpu_feature_names[eSSE_Ext]);
+        setExtension(cpu_feature_names[eSSE2_Ext]);
+        setExtension(cpu_feature_names[eSSE3_Features]);
+        setExtension(cpu_feature_names[eSSE3S_Features]);
+        setExtension(cpu_feature_names[eSSE4_1_Features]);
+        setExtension(cpu_feature_names[eSSE4_2_Features]);
+    #else
+        int cpu_info[4] = { -1 };
         __cpuid(cpu_info, 0);
         unsigned int ids = (unsigned int)cpu_info[0];
         setConfig(eMaxID, (S32)ids);
 
         char cpu_vendor[0x20];
         memset(cpu_vendor, 0, sizeof(cpu_vendor));
-        *((int*)cpu_vendor) = cpu_info[1];
-        *((int*)(cpu_vendor+4)) = cpu_info[3];
-        *((int*)(cpu_vendor+8)) = cpu_info[2];
+        *((int*)cpu_vendor)       = cpu_info[1];
+        *((int*)(cpu_vendor + 4)) = cpu_info[3];
+        *((int*)(cpu_vendor + 8)) = cpu_info[2];
         setInfo(eVendor, cpu_vendor);
         std::string cmp_vendor(cpu_vendor);
-        bool is_amd = false;
+        bool        is_amd = false;
         if (cmp_vendor == "AuthenticAMD")
         {
             is_amd = true;
         }
 
         // Get the information associated with each valid Id
-        for(unsigned int i=0; i<=ids; ++i)
+        for (unsigned int i = 0; i <= ids; ++i)
         {
             __cpuid(cpu_info, i);
 
             // Interpret CPU feature information.
-            if  (i == 1)
+            if (i == 1)
             {
                 setInfo(eStepping, cpu_info[0] & 0xf);
                 setInfo(eModel, (cpu_info[0] >> 4) & 0xf);
@@ -536,23 +615,23 @@ private:
                 setConfig(eCLFLUSHCacheLineSize, ((cpu_info[1] >> 8) & 0xff) * 8);
                 setConfig(eAPICPhysicalID, (cpu_info[1] >> 24) & 0xff);
 
-                if(cpu_info[2] & 0x1)
+                if (cpu_info[2] & 0x1)
                 {
                     setExtension(cpu_feature_names[eSSE3_Features]);
                 }
 
-                if(cpu_info[2] & 0x8)
+                if (cpu_info[2] & 0x8)
                 {
                     // intel specific SSE3 suplements
                     setExtension(cpu_feature_names[eMONTIOR_MWAIT]);
                 }
 
-                if(cpu_info[2] & 0x10)
+                if (cpu_info[2] & 0x10)
                 {
                     setExtension(cpu_feature_names[eCPLDebugStore]);
                 }
 
-                if(cpu_info[2] & 0x100)
+                if (cpu_info[2] & 0x100)
                 {
                     setExtension(cpu_feature_names[eThermalMonitor2]);
                 }
@@ -572,10 +651,10 @@ private:
                     setExtension(cpu_feature_names[eSSE4_2_Features]);
                 }
 
-                unsigned int feature_info = (unsigned int) cpu_info[3];
-                for(unsigned int index = 0, bit = 1; index < eSSE3_Features; ++index, bit <<= 1)
+                unsigned int feature_info = (unsigned int)cpu_info[3];
+                for (unsigned int index = 0, bit = 1; index < eSSE3_Features; ++index, bit <<= 1)
                 {
-                    if(feature_info & bit)
+                    if (feature_info & bit)
                     {
                         setExtension(cpu_feature_names[index]);
                     }
@@ -593,7 +672,7 @@ private:
         memset(cpu_brand_string, 0, sizeof(cpu_brand_string));
 
         // Get the information associated with each extended ID.
-        for(unsigned int i=0x80000000; i<=ext_ids; ++i)
+        for (unsigned int i = 0x80000000; i <= ext_ids; ++i)
         {
             __cpuid(cpu_info, i);
 
@@ -609,20 +688,21 @@ private:
             {
                 memcpy(cpu_brand_string, cpu_info, sizeof(cpu_info));
             }
-            else if  (i == 0x80000003)
+            else if (i == 0x80000003)
                 memcpy(cpu_brand_string + 16, cpu_info, sizeof(cpu_info));
-            else if  (i == 0x80000004)
+            else if (i == 0x80000004)
             {
                 memcpy(cpu_brand_string + 32, cpu_info, sizeof(cpu_info));
                 setInfo(eBrandName, cpu_brand_string);
             }
-            else if  (i == 0x80000006)
+            else if (i == 0x80000006)
             {
                 setConfig(eCacheLineSize, cpu_info[2] & 0xff);
                 setConfig(eL2Associativity, (cpu_info[2] >> 12) & 0xf);
                 setConfig(eCacheSizeK, (cpu_info[2] >> 16) & 0xffff);
             }
         }
+    #endif
     }
 };
 

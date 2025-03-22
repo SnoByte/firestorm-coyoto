@@ -29,6 +29,10 @@
 
 #include "lluuid.h"
 
+#include <chrono>
+#include <filesystem>
+#include <ctime>
+
 namespace LLCommonUtils
 {
     /**
@@ -46,6 +50,8 @@ namespace LLCommonUtils
         const uuid_vec_t& vcur,
         uuid_vec_t& vadded,
         uuid_vec_t& vremoved);
+
+     LL_COMMON_API std::time_t file_time_to_time_t(const std::filesystem::file_time_type& ftime);
 };
 
 #endif //LL_LLCOMMONUTILS_H

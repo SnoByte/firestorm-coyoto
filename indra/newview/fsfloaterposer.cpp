@@ -223,6 +223,7 @@ bool FSFloaterPoser::postBuild()
 
     mBtnJointRotate = getChild<LLButton>("button_joint_rotate_tool");
 
+
     return true;
 }
 
@@ -235,7 +236,9 @@ void FSFloaterPoser::onOpen(const LLSD& key)
     refreshPoseScroll(mHandPresetsScrollList, POSE_PRESETS_HANDS_SUBDIRECTORY);
     startPosingSelf();
 
+
     enableVisualManipulators();
+
     LLFloater::onOpen(key);
 }
 
@@ -279,7 +282,9 @@ void FSFloaterPoser::onClose(bool app_quitting)
         stopPosingAllAvatars();
     }
 
+
     disableVisualManipulators();
+
     LLFloater::onClose(app_quitting);
 }
 
@@ -1504,6 +1509,7 @@ LLScrollListCtrl* FSFloaterPoser::getScrollListForTab(LLPanel * tabPanel) const
     LL_WARNS() << "Unknown tab panel: " << tabPanel << LL_ENDL;
     return nullptr;
 }
+
 std::vector<FSPoserAnimator::FSPoserJoint*> FSFloaterPoser::getUiSelectedPoserJoints() const
 {
     std::vector<FSPoserAnimator::FSPoserJoint*> joints;

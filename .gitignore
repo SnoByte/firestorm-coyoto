@@ -129,3 +129,5 @@ firestorm.code-workspace
 .github/release.yaml
 
 checks.json
+/indra/lib/sse2neon.h
+/indra/llcommon/sse2neon.h

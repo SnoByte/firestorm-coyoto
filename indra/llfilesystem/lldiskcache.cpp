@@ -34,10 +34,23 @@
 #include "llapp.h"
 #include "llassettype.h"
 #include "lldir.h"
-#include <boost/filesystem.hpp>
+#include "llcommonutils.h"
 #include <chrono>
 
+#ifdef WITH_BOOST_FS
+   #include "boost/filesystem.hpp"
+   namespace fs = boost::filesystem;
+   namespace sys = boost::system;
+#else
+   #include <filesystem>
+   #include "boost/system.hpp"
+   namespace fs = std::filesystem;
+   namespace sys = boost::system;
+#endif
+
 #include "lldiskcache.h"
+
+
 
  /**
   * The prefix inserted at the start of a cache file filename to
@@ -47,7 +60,7 @@
   * like the users' OS system dir by mistake or maliciously and
   * this will help to offset any damage if that happens.
   */
-static const std::string CACHE_FILENAME_PREFIX("sl_cache");
+static const std::string CACHE_FILENAME_PREFIX("sl_cache2");
 
 std::string LLDiskCache::sCacheDir;
 
@@ -88,7 +101,7 @@ LLDiskCache::LLDiskCache(const std::string& cache_dir,
 // Interaction through the filesystem itself should be safe. Let’s say thread
 // A is accessing the cache file for reading/writing and thread B is trimming
 // the cache. Let’s also assume using llifstream to open a file and
-// boost::filesystem::remove are not atomic (which will be pretty much the
+// fs::remove are not atomic (which will be pretty much the
 // case).
 
 // Now, A is trying to open the file using llifstream ctor. It does some
@@ -104,7 +117,7 @@ LLDiskCache::LLDiskCache(const std::string& cache_dir,
 // garbage.)
 
 // Other situation: B is trimming the cache and A wants to read a file that is
-// about to get deleted. boost::filesystem::remove does whatever it is doing
+// about to get deleted. fs::remove does whatever it is doing
 // before actually deleting the file. If A opens the file before the file is
 // actually gone, the OS call from B to delete the file will fail since the OS
 // will prevent this. B continues with the next file. If the file is already
@@ -117,7 +130,7 @@ void LLDiskCache::purge()
         LL_INFOS() << "Total dir size before purge is " << dirFileSize(sCacheDir) << LL_ENDL;
     }
 
-    boost::system::error_code ec;
+    sys::error_code ec;
     auto start_time = std::chrono::high_resolution_clock::now();
 
     typedef std::pair<std::time_t, std::pair<uintmax_t, std::string>> file_info_t;
@@ -130,26 +143,27 @@ void LLDiskCache::purge()
 #endif
     uintmax_t file_size_total = 0; // <FS:Beq/> try to make simple cache less naive.
     
-    if (boost::filesystem::is_directory(cache_path, ec) && !ec.failed())
+    if (fs::is_directory(cache_path, ec) && !ec.failed())
+        if (std::filesystem::is_directory(cache_path, ec) && !ec)
     {
         // <FS:Ansariel> Optimize asset simple disk cache
-        //boost::filesystem::directory_iterator iter(cache_path, ec);
-        //while (iter != boost::filesystem::directory_iterator() && !ec.failed())
-        boost::filesystem::recursive_directory_iterator iter(cache_path, ec);
-        while (iter != boost::filesystem::recursive_directory_iterator() && !ec.failed())
+        //fs::directory_iterator iter(cache_path, ec);
+        //while (iter != fs::directory_iterator() && !ec.failed())
+        fs::recursive_directory_iterator iter(cache_path, ec);
+        while (iter != fs::recursive_directory_iterator() && !ec.failed())
         // </FS:Ansariel>
         {
-            if (boost::filesystem::is_regular_file(*iter, ec) && !ec.failed())
+            if (fs::is_regular_file(*iter, ec) && !ec.failed())
             {
                 if ((*iter).path().string().find(CACHE_FILENAME_PREFIX) != std::string::npos)
                 {
-                    uintmax_t file_size = boost::filesystem::file_size(*iter, ec);
+                    uintmax_t file_size = fs::file_size(*iter, ec);
                     if (ec.failed())
                     {
                         continue;
                     }
                     const std::string file_path = (*iter).path().string();
-                    const std::time_t file_time = boost::filesystem::last_write_time(*iter, ec);
+                    const std::time_t file_time = LLCommonUtils::file_time_to_time_t(fs::last_write_time(*iter, ec));
                     if (ec.failed())
                     {
                         continue;
@@ -231,7 +245,8 @@ void LLDiskCache::purge()
             // this is one of our protected items so no purging
             should_remove = false;
             action = purge_action::skip_file;
-            boost::filesystem::last_write_time(entry.second.second, ec);  // force these to the front of the list next time so that purge size works 
+            auto time = fs::last_write_time(entry.second.second, ec); 
+            (void)time;
             skip++;
         }
         else{
@@ -245,7 +260,7 @@ void LLDiskCache::purge()
     // </FS>
         if (should_remove)
         {
-            boost::filesystem::remove(entry.second.second, ec);
+            fs::remove(entry.second.second, ec);
             if (ec.failed())
             {
                 LL_WARNS() << "Failed to delete cache file " << entry.second.second << ": " << ec.message() << LL_ENDL;
@@ -410,20 +425,20 @@ void LLDiskCache::clearCache()
 #else
     std::string cache_path(sCacheDir);
 #endif
-    if (boost::filesystem::is_directory(cache_path, ec) && !ec.failed())
+    if (fs::is_directory(cache_path, ec) && !ec.failed())
     {
         // <FS:Ansariel> Optimize asset simple disk cache
-        //boost::filesystem::directory_iterator iter(cache_path, ec);
-        //while (iter != boost::filesystem::directory_iterator() && !ec.failed())
-        boost::filesystem::recursive_directory_iterator iter(cache_path, ec);
-        while (iter != boost::filesystem::recursive_directory_iterator() && !ec.failed())
+        //fs::directory_iterator iter(cache_path, ec);
+        //while (iter != fs::directory_iterator() && !ec.failed())
+        fs::recursive_directory_iterator iter(cache_path, ec);
+        while (iter != fs::recursive_directory_iterator() && !ec.failed())
         // </FS:Ansariel>
         {
-            if (boost::filesystem::is_regular_file(*iter, ec) && !ec.failed())
+            if (fs::is_regular_file(*iter, ec) && !ec.failed())
             {
                 if ((*iter).path().string().find(CACHE_FILENAME_PREFIX) != std::string::npos)
                 {
-                    boost::filesystem::remove(*iter, ec);
+                    fs::remove(*iter, ec);
                     if (ec.failed())
                     {
                         LL_WARNS() << "Failed to delete cache file " << *iter << ": " << ec.message() << LL_ENDL;
@@ -451,17 +466,17 @@ void LLDiskCache::removeOldVFSFiles()
 #else
     std::string cache_path(gDirUtilp->getExpandedFilename(LL_PATH_CACHE, ""));
 #endif
-    if (boost::filesystem::is_directory(cache_path, ec) && !ec.failed())
+    if (fs::is_directory(cache_path, ec) && !ec.failed())
     {
-        boost::filesystem::directory_iterator iter(cache_path, ec);
-        while (iter != boost::filesystem::directory_iterator() && !ec.failed())
+        fs::directory_iterator iter(cache_path, ec);
+        while (iter != fs::directory_iterator() && !ec.failed())
         {
-            if (boost::filesystem::is_regular_file(*iter, ec) && !ec.failed())
+            if (fs::is_regular_file(*iter, ec) && !ec.failed())
             {
                 if (((*iter).path().string().find(CACHE_FORMAT) != std::string::npos) ||
                     ((*iter).path().string().find(DB_FORMAT) != std::string::npos))
                 {
-                    boost::filesystem::remove(*iter, ec);
+                    fs::remove(*iter, ec);
                     if (ec.failed())
                     {
                         LL_WARNS() << "Failed to delete cache file " << *iter << ": " << ec.message() << LL_ENDL;
@@ -516,20 +531,20 @@ uintmax_t LLDiskCache::dirFileSize(const std::string& dir, bool force)
 #else
     std::string dir_path(dir);
 #endif
-    if (boost::filesystem::is_directory(dir_path, ec) && !ec.failed())
+    if (fs::is_directory(dir_path, ec) && !ec.failed())
     {
         // <FS:Ansariel> Optimize asset simple disk cache
-        //boost::filesystem::directory_iterator iter(dir_path, ec);
-        //while (iter != boost::filesystem::directory_iterator() && !ec.failed())
-        boost::filesystem::recursive_directory_iterator iter(dir_path, ec);
-        while (iter != boost::filesystem::recursive_directory_iterator() && !ec.failed())
+        //fs::directory_iterator iter(dir_path, ec);
+        //while (iter != fs::directory_iterator() && !ec.failed())
+        fs::recursive_directory_iterator iter(dir_path, ec);
+        while (iter != fs::recursive_directory_iterator() && !ec.failed())
             // </FS:Ansariel>
         {
-            if (boost::filesystem::is_regular_file(*iter, ec) && !ec.failed())
+            if (fs::is_regular_file(*iter, ec) && !ec.failed())
             {
                 if ((*iter).path().string().find(CACHE_FILENAME_PREFIX) != std::string::npos)
                 {
-                    uintmax_t file_size = boost::filesystem::file_size(*iter, ec);
+                    uintmax_t file_size = fs::file_size(*iter, ec);
                     if (!ec.failed())
                     {
                         total_file_size += file_size;

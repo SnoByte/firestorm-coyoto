@@ -339,12 +339,34 @@ private:
     friend void default_unix_signal_handler(int signum, siginfo_t *info, void *);
 #endif
 
+#if !LL_WINDOWS
+    friend void default_unix_signal_handler(int signum, siginfo_t* info, void*);
+#endif
+
 private:
+    // The application status
+    static std::atomic<int>        sPid;
+    static std::atomic<EAppStatus> sAppStatus;
+    static std::atomic<bool>       sOutOfDiskSpace;
+    // The application status mutex
+    static std::mutex sAppStatusMutex;
+    // The application status condition variable
+    static std::condition_variable sAppStatusCondition;
+    // The application status thread
+    static std::thread sAppStatusThread;
+    // The application status thread mutex
+    static std::mutex sAppStatusThreadMutex;
+    // The application status thread condition variable
+    static std::condition_variable sAppStatusThreadCondition;
+    // The application status
 #ifdef LL_RELEASE_FOR_DOWNLOAD
     static constexpr bool sLogInSignal = false;
 #else
     static constexpr bool sLogInSignal = true;
 #endif
 };
+// Define the static member variable in the implementation file
+//std::mutex LLApp::sAppStatusThreadMutex;
+
 
 #endif // LL_LLAPP_H
