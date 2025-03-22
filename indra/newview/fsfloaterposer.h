@@ -1,5 +1,5 @@
 /**
- * @file fsfloaterposer.cpp
+ * @file fsfloaterposer.h
  * @brief View Model for posing your (and other) avatar(s).
  *
  * $LicenseInfo:firstyear=2024&license=viewerlgpl$
@@ -74,18 +74,25 @@ typedef enum E_Columns
 /// A class containing the UI fiddling for the Poser Floater.
 /// Please don't do LLJoint stuff here, fsposingmotion (the LLMotion derivative) is the class for that.
 /// </summary>
-class FSFloaterPoser : public LLFloater
+class FSFloaterPoser : public LLFloater, public LLEditMenuHandler
 {
     friend class LLFloaterReg;
     FSFloaterPoser(const LLSD &key);
 public:    
     void updatePosedBones();
     void selectJointByName(const std::string& jointName);
+
+    void  undo() override { onUndoLastChange(); };
+    bool  canUndo() const  override { return true; }
+    void  redo() override { onRedoLastChange(); };
+    bool  canRedo() const override { return true; }    
+
  private:
     bool postBuild() override;
     void onOpen(const LLSD& key) override;
     void onClose(bool app_quitting) override;
-
+    void onFocusReceived() override;
+    void onFocusLost() override;
     /// <summary>
     /// Refreshes the supplied pose list from the supplued subdirectory.
     /// </summary>
@@ -218,30 +225,28 @@ public:
     bool poseFileStartsFromTeePose(const std::string& poseFileName);
     void setPoseSaveFileTextBoxToUiSelectedAvatarSaveFileName();
     void setUiSelectedAvatarSaveFileName(const std::string& saveFileName);
+    // visual manipulators control
+    void enableVisualManipulators();
+    void disableVisualManipulators();
 
     // UI Event Handlers:
     void onAvatarsRefresh();
     void onAvatarSelect();
     void onJointTabSelect();
-    void onToggleAdvancedPanel();
     void onToggleMirrorChange();
     void onToggleSympatheticChange();
+    void onToggleVisualManipulators();    
     void setRotationChangeButtons(bool mirror, bool sympathetic);
-    void onUndoLastRotation();
-    void onRedoLastRotation();
-    void onUndoLastPosition();
-    void onRedoLastPosition();
-    void onUndoLastScale();
-    void onRedoLastScale();
-    void onResetPosition();
-    void onResetScale();
+    void onUndoLastChange();
+    void onRedoLastChange();
+    void onResetJoint(const LLSD data);
     void onSetAvatarToTpose();
     void enableOrDisableRedoButton();
     void onPoseStartStop();
     void startPosingSelf();
     void stopPosingAllAvatars();
     void onLimbTrackballChanged();
-    void onYawPitchRollSliderChanged();
+    void onYawPitchRollChanged();
     void onAvatarPositionSet();
     void onAdvancedPositionSet();
     void onAdvancedScaleSet();
@@ -249,22 +254,20 @@ public:
     void onClickRecaptureSelectedBones();
     void onClickFlipPose();
     void onClickFlipSelectedJoints();
-    void onPoseJointsReset();
-    void onOpenSetAdvancedPanel();
     void onAdjustTrackpadSensitivity();
     void onClickLoadLeftHandPose();
     void onClickLoadRightHandPose();
     void onClickLoadHandPose(bool isRightHand);
     void onClickSetBaseRotZero();
-    //void onCommitSpinner(LLUICtrl* spinner);
     void onCommitSpinner(LLUICtrl* spinner, S32 ID);
+    void onClickSymmetrize(S32 ID);
 
     // UI Refreshments
     void refreshRotationSlidersAndSpinners();
     void refreshAvatarPositionSlidersAndSpinners();
     void refreshTrackpadCursor();
-    void refreshAdvancedPositionSlidersAndSpinners();
-    void refreshAdvancedScaleSlidersAndSpinners();
+    void refreshPositionSlidersAndSpinners();
+    void refreshScaleSlidersAndSpinners();
 
     /// <summary>
     /// Determines if we have permission to animate the supplied avatar.
@@ -389,8 +392,7 @@ public:
     /// <param name="avatar">The avatar owning the supplied joint.</param>
     /// <param name="joint">The joint whose fragment should be written, and whose child(ren) will also be written.</param>
     /// <param name="tabStops">The number of tab-stops to include for formatting purpose.</param>
-    /// <returns>True if the fragment wrote successfully, otherwise false.</returns>
-    bool writeBvhFragment(llofstream* fileStream, LLVOAvatar* avatar, const FSPoserAnimator::FSPoserJoint* joint, S32 tabStops);
+    void writeBvhFragment(llofstream* fileStream, LLVOAvatar* avatar, const FSPoserAnimator::FSPoserJoint* joint, S32 tabStops);
 
     /// <summary>
     /// Writes a fragment of the 'single line' representing an animation frame within the BVH file respresenting the positions and/or
@@ -399,8 +401,15 @@ public:
     /// <param name="fileStream">The stream to write the position and/or rotation to.</param>
     /// <param name="avatar">The avatar owning the supplied joint.</param>
     /// <param name="joint">The joint whose position and/or rotation should be written.</param>
-    /// <returns></returns>
-    bool writeBvhMotion(llofstream* fileStream, LLVOAvatar* avatar, const FSPoserAnimator::FSPoserJoint* joint);
+    void writeBvhMotion(llofstream* fileStream, LLVOAvatar* avatar, const FSPoserAnimator::FSPoserJoint* joint);
+
+    /// <summary>
+    /// Writes a fragment of the 'single line' representing the first animation frame within the BVH file respresenting the positions and/or
+    /// rotations.
+    /// </summary>
+    /// <param name="fileStream">The stream to write the position and/or rotation to.</param>
+    /// <param name="joint">The joint whose position and/or rotation should be written.</param>
+    void writeFirstFrameOfBvhMotion(llofstream* fileStream, const FSPoserAnimator::FSPoserJoint* joint);
 
     /// <summary>
     /// Generates a string with the supplied number of tab-chars.
@@ -448,9 +457,6 @@ public:
     FSVirtualTrackpad* mAvatarTrackball{ nullptr };
 
     LLSliderCtrl* mTrackpadSensitivitySlider{ nullptr };
-    LLSliderCtrl* mLimbYawSlider{ nullptr };
-    LLSliderCtrl* mLimbPitchSlider{ nullptr }; // pointing your nose up or down
-    LLSliderCtrl* mLimbRollSlider{ nullptr }; // your ear touches your shoulder
     LLSliderCtrl* mPosXSlider{ nullptr };
     LLSliderCtrl* mPosYSlider{ nullptr };
     LLSliderCtrl* mPosZSlider{ nullptr };
@@ -474,7 +480,7 @@ public:
     LLScrollListCtrl* mPosesScrollList{ nullptr };
     LLScrollListCtrl* mHandPresetsScrollList{ nullptr };
 
-    LLButton* mToggleAdvancedPanelBtn{ nullptr };
+    LLButton* mToggleVisualManipulators{ nullptr };
     LLButton* mStartStopPosingBtn{ nullptr };
     LLButton* mToggleLoadSavePanelBtn{ nullptr };
     LLButton* mBrowserFolderBtn{ nullptr };
@@ -493,7 +499,6 @@ public:
 
     LLLineEditor* mPoseSaveNameEditor{ nullptr };
 
-    LLPanel* mAdvancedParentPnl{ nullptr };
     LLPanel* mJointsParentPnl{ nullptr };
     LLPanel* mTrackballPnl{ nullptr };
     LLPanel* mPositionRotationPnl{ nullptr };
